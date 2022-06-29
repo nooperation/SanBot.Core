@@ -14,6 +14,7 @@ namespace SanBot.Core
     public class RegionClient
     {
         TcpClient accountConductor = new TcpClient();
+        public event EventHandler<string>? OnOutput;
 
         public string? Hostname { get; set; }
         public int Port { get; set; }
@@ -70,11 +71,14 @@ namespace SanBot.Core
             Port = port;
             Secret = secret;
 
-            Output("Start");
+            Output("Connecting...");
             accountConductor.Connect(Hostname, Port);
+            Output("OK");
 
+            Output("Sending version packet...");
             var versionPacket = new VersionPacket(VersionPacket.VersionType.ClientRegionChannel);
             SendPacket(versionPacket);
+            Output("OK");
         }
         
         public bool Poll()
@@ -162,23 +166,19 @@ namespace SanBot.Core
 
         private void HandleVersionPacket(BinaryReader br)
         {
-            Output("HandleVersionPacket:");
+            Output("Got version packet from server");
             var versionPacket = new VersionPacket(br);
-            Output(versionPacket);
 
+            Output("Sending login packet...");
             var loginPacket = new SanProtocol.ClientRegion.UserLogin(
                 Secret
             );
-
-            Output("Sending " + loginPacket);
-            Output(loginPacket);
-
             SendPacket(loginPacket);
         }
 
-        private void Output(object message)
+        private void Output(string message)
         {
-            Console.WriteLine($"[{nameof(RegionClient)}] {message}");
+            OnOutput?.Invoke(this, message);
         }
     }
 }

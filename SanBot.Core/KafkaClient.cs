@@ -15,6 +15,7 @@ namespace SanBot.Core
     public class KafkaClient
     {
         TcpClient accountConductor = new TcpClient();
+        public event EventHandler<string>? OnOutput;
 
         public string? Hostname { get; set; }
         public int Port { get; set; }
@@ -43,11 +44,14 @@ namespace SanBot.Core
             Port = port;
             Secret = secret;
 
-            Output("Start");
+            Output("Connecting...");
             accountConductor.Connect(Hostname, Port);
+            Output("OK");
 
+            Output("Sending version packet...");
             var versionPacket = new VersionPacket(VersionPacket.VersionType.ClientKafkaChannel);
             SendPacket(versionPacket);
+            Output("OK");
         }
 
         public bool Poll()
@@ -135,37 +139,32 @@ namespace SanBot.Core
 
         private void HandleVersionPacket(BinaryReader br)
         {
-            Output("HandleVersionPacket:");
+            Output("Got version packet from server");
             var versionPacket = new VersionPacket(br);
-            Output(versionPacket);
 
             if (Driver.MyUserInfo?.AccountId == null)
             {
-                Output("Cannot login: Missing UserInfo");
-                return;
+                throw new Exception("Cannot login: Missing UserInfo");
             }
 
             if (Driver.MyPersonaDetails?.Id == null)
             {
-                Output("Cannot login: Missing PersonaDetails for default persona");
-                return;
+                throw new Exception("Cannot login: Missing PersonaDetails for default persona");
             }
 
+            Output("Sending login packet...");
             var loginPacket = new SanProtocol.ClientKafka.Login(
                 Driver.MyUserInfo.AccountId,
                 Driver.MyPersonaDetails.Id,
                 Secret,
                 0
             );
-
-            Output("Sending " + loginPacket);
-            Output(loginPacket);
             SendPacket(loginPacket);
         }
 
-        private void Output(object message)
+        private void Output(string message)
         {
-            Console.WriteLine($"[{nameof(KafkaClient)}] {message}");
+            OnOutput?.Invoke(this, message);
         }
     }
 }

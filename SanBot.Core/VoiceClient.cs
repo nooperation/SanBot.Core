@@ -15,7 +15,8 @@ namespace SanBot.Core
     public class VoiceClient
     {
         TcpClient accountConductor = new TcpClient();
-
+        public event EventHandler<string>? OnOutput;
+        
         public string? Hostname { get; set; }
         public int Port { get; set; }
         public uint Secret { get; set; }
@@ -47,11 +48,14 @@ namespace SanBot.Core
             InstanceId = instanceId;
             // InstanceId = new SanUUID(sceneUri.Substring(1 + sceneUri.LastIndexOf('/')));
 
-            Output("Start");
+            Output("Connecting...");
             accountConductor.Connect(Hostname, Port);
+            Output("OK");
 
+            Output("Sending version packet...");
             var versionPacket = new VersionPacket(VersionPacket.VersionType.ClientVoiceChannel);
             SendPacket(versionPacket);
+            Output("OK");
         }
 
 
@@ -140,25 +144,22 @@ namespace SanBot.Core
 
         private void HandleVersionPacket(BinaryReader br)
         {
-            Output("HandleVersionPacket:");
+            Output("Got version packet from server");
             var versionPacket = new VersionPacket(br);
-            Output(versionPacket);
 
+            Output("Sending login packet...");
             var loginPacket = new SanProtocol.ClientVoice.Login(
                 InstanceId,
                 Secret,
                 SanUUID.Zero,
                 0
             );
-
-            Output("Sending " + loginPacket);
-            Output(loginPacket);
             SendPacket(loginPacket);
         }
 
-        private void Output(object message)
+        private void Output(string message)
         {
-            Console.WriteLine($"[{nameof(VoiceClient)}] {message}");
+            OnOutput?.Invoke(this, message);
         }
     }
 }
