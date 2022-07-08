@@ -9,6 +9,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using SanWebApi;
 using Newtonsoft.Json;
+using SanProtocol.AgentController;
+using SanProtocol.ClientRegion;
 
 namespace SanBot.Core
 {
@@ -67,7 +69,7 @@ namespace SanBot.Core
             }
         }
 
-        internal void SendPrivateMessage(SanUUID other, string message)
+        public void SendPrivateMessage(SanUUID other, string message)
         {
             if(MyPersonaDetails == null)
             {
@@ -85,7 +87,27 @@ namespace SanBot.Core
             KafkaClient.SendPacket(privateMessagePacket);
         }
 
-        private static string Clusterbutt(string text)
+        public void RequestSpawnItem(ulong frame, SanUUID itemClusterResourceId, List<float> spawnPosition, Quaternion spawnOrientation, uint agentControllerId)
+        {
+            var packet = new RequestSpawnItem(
+                frame,
+                agentControllerId,
+                itemClusterResourceId,
+                255,
+                spawnPosition,
+                spawnOrientation
+            );
+
+            RegionClient.SendPacket(packet);
+        }
+
+        public void RequestPortalAt(string sansarUri, string sansarUriDescription)
+        {
+            var packet = new RequestDropPortal(sansarUri, sansarUriDescription);
+            RegionClient.SendPacket(packet);
+        }
+
+        public static string Clusterbutt(string text)
         {
             text = text.Replace("-", "");
             var match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
@@ -172,23 +194,6 @@ namespace SanBot.Core
             }
             Output("OK");
 
-            Output("Getting account confugration...");
-            var accountConfiguration = await WebApi.GetAccountConfiguration(MyUserInfo.AccountId);
-            Output("OK");
-
-            Output("Getting subscriptions...");
-            var subscriptions = await WebApi.GetSubscriptions();
-            Output("OK");
-
-            Output("Getting business rules...");
-            var businessRules = await WebApi.GetBusinessRules();
-            Output("OK");
-
-            Output("Getting library...");
-            var library = await WebApi.GetLibrary();
-            Output($"  {library.Items.Count} items fetched");
-            Output("OK");
-
             Output("Posting to account connector...");
             var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
@@ -216,6 +221,14 @@ namespace SanBot.Core
                 RegionAccountConnectorResponse.RegionResponse.Host,
                 RegionAccountConnectorResponse.RegionResponse.UdpPort,
                 RegionAccountConnectorResponse.RegionResponse.Secret
+            );
+
+            Output("Starting voice client");
+            VoiceClient.Start(
+                RegionAccountConnectorResponse.VoiceResponse.Host,
+                RegionAccountConnectorResponse.VoiceResponse.UdpPort,
+                RegionAccountConnectorResponse.VoiceResponse.Secret,
+                CurrentInstanceId
             );
         }
 
