@@ -226,7 +226,7 @@ namespace SanBot.Core.MessageHandlers
                     return false;
                 }
             }
-
+            
             return true;
         }
 
@@ -244,9 +244,8 @@ namespace SanBot.Core.MessageHandlers
 
         void HandleCharacterIKPoseDelta(BinaryReader reader)
         {
-            // TODO: This parser is incorrect and will crash
-            //var packet = new CharacterIKPoseDelta(reader);
-            //OnCharacterIKPoseDelta?.Invoke(this, packet);
+            var packet = new CharacterIKPoseDelta(reader);
+            OnCharacterIKPoseDelta?.Invoke(this, packet);
         }
 
         void HandleCharacterIKPose(BinaryReader reader)

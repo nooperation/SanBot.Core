@@ -83,17 +83,20 @@ namespace SanBot.Core
         
         public bool Poll()
         {
-            if (accountConductor.Available == 0)
+            if(accountConductor.Available == 0)
             {
                 return false;
             }
 
             var instream = accountConductor.GetStream();
+            var buffer = new byte[16384];
 
-            var buffer = new byte[4096];
-            var numBytesRead = instream.Read(buffer, 0, buffer.Length);
+            while (accountConductor.Available > 0)
+            {
+                var numBytesRead = instream.Read(buffer, 0, buffer.Length);
+                PacketBuffer.AppendBytes(buffer, numBytesRead);
+            }
 
-            PacketBuffer.AppendBytes(buffer, numBytesRead);
             foreach (var packet in PacketBuffer.Packets)
             {
                 HandlePacket(packet);
@@ -105,14 +108,11 @@ namespace SanBot.Core
 
         public void SendPacket(IPacket packet)
         {
-           // Output("SendPacket: " + packet.GetType() + "\n" + packet);
             SendRaw(packet.GetBytes());
         }
 
         public void SendRaw(byte[] bytes)
         {
-            //Output("SendRaw: " + Utils.DumpPacket(bytes, true));
-
             BinaryWriter bw = new BinaryWriter(accountConductor.GetStream());
             bw.Write(bytes.Length);
 
@@ -131,8 +131,6 @@ namespace SanBot.Core
         
         private void HandlePacket(byte[] packet)
         {
-           // Output("HandlePacket " + Utils.DumpPacket(packet, true));
-
             using (BinaryReader br = new BinaryReader(new MemoryStream(packet)))
             {
                 var id = br.ReadUInt32();
