@@ -80,7 +80,15 @@ namespace SanBot.Core
             SendPacket(versionPacket);
             Output("OK");
         }
-        
+
+        public void Disconnect()
+        {
+            if (accountConductor.Connected)
+            {
+                accountConductor.Close();
+            }
+        }
+
         public bool Poll()
         {
             if(accountConductor.Available == 0)

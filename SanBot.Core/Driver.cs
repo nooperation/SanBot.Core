@@ -251,6 +251,17 @@ namespace SanBot.Core
             //RegionClient_OnOutput(sender, "Privileges:\n" + String.Join(Environment.NewLine, e.Privileges));
         }
 
+        public void Disconnect()
+        {
+            RegionClient?.Disconnect();
+            VoiceClient?.Disconnect();
+            KafkaClient?.Disconnect();
+
+            RegionClient = null;
+            VoiceClient = null;
+            KafkaClient = null;
+        }
+
         public bool Poll()
         {
             bool handledData = false;
