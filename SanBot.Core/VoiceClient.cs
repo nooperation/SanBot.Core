@@ -28,6 +28,8 @@ namespace SanBot.Core
         public ClientVoice ClientVoiceMessages { get; set; }
         public Driver Driver { get; }
 
+        public uint CurrentSequence { get; set; }
+
         public VoiceClient(Driver driver)
         {
             this.Driver = driver;
