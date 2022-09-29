@@ -13,6 +13,8 @@ using SanProtocol.AgentController;
 using SanProtocol.ClientRegion;
 using static SanBot.Database.Services.PersonaService;
 using SanBot.Database;
+using Concentus.Structs;
+using SanProtocol.ClientVoice;
 
 namespace SanBot.Core
 {
@@ -31,6 +33,17 @@ namespace SanBot.Core
         public SanProtocol.AnimationComponent.CharacterTransform? LastTransform { get; set; }
         public CharacterControllerInput? LastControllerInput { get; set; }
         public List<float>? LastVoicePosition { get; set; }
+    }
+    public struct RegionDetails
+    {
+        public string PersonaHandle { get; set; }
+        public string SceneHandle { get; set; }
+
+        public RegionDetails(string personaHandle, string sceneHandle)
+        {
+            PersonaHandle = personaHandle;
+            SceneHandle = sceneHandle;
+        }
     }
 
     public class Driver
@@ -53,7 +66,12 @@ namespace SanBot.Core
         public SanUUID? CurrentInstanceId { get; set; }
 
         public PersonaData? MyPersonaData { get; set; }
+        public VoiceAudioThread AudioThread { get; set; }
 
+        public bool TryToAvoidInterruptingPeople { get; set; } = false;
+        public bool UseVoice { get; set; } = true;
+        public bool AutomaticallySendClientReady { get; set; } = true;
+        public RegionDetails? RegionToJoin { get; set; } = null;
 
         public Driver()
         {
@@ -70,6 +88,7 @@ namespace SanBot.Core
             VoiceClient.OnOutput += VoiceClient_OnOutput;
 
             KafkaClient.ClientKafkaMessages.OnLoginReply += ClientKafkaMessages_OnLoginReply;
+            KafkaClient.ClientKafkaMessages.OnPrivateChat += ClientKafkaMessages_OnPrivateChat;
 
             RegionClient.ClientRegionMessages.OnUserLoginReply += ClientRegionMessages_OnUserLoginReply;
             RegionClient.ClientRegionMessages.OnAddUser += ClientRegionMessages_OnAddUser;
@@ -88,6 +107,30 @@ namespace SanBot.Core
             RegionClient.WorldStateMessages.OnDestroyAgentController += WorldStateMessages_OnDestroyAgentController;
             RegionClient.WorldStateMessages.OnDestroyCluster += WorldStateMessages_OnDestroyCluster;
 
+            VoiceClient.ClientVoiceMessages.OnLocalAudioData += ClientVoiceMessages_OnLocalAudioData;
+
+
+            AudioThread = new VoiceAudioThread(VoiceClient.SendRaw, TryToAvoidInterruptingPeople);
+        }
+
+
+        private void ClientVoiceMessages_OnLocalAudioData(object? sender, SanProtocol.ClientVoice.LocalAudioData e)
+        {
+            if (MyPersonaData == null || MyPersonaData.AgentControllerId == null)
+            {
+                return;
+            }
+
+            if (e.AgentControllerId == MyPersonaData.AgentControllerId)
+            {
+                return;
+            }
+
+            if (e.Data.Volume >= 400)
+            {
+                //Output($"Someone is speaking [{e.Data.Volume}]: " + e.AgentControllerId);
+                AudioThread.LastTimeSomeoneSpoke = DateTime.Now;
+            }
         }
 
         private void AgentControllerMessages_OnCharacterControllerInput(object? sender, CharacterControllerInput e)
@@ -179,6 +222,17 @@ namespace SanBot.Core
             }
 
             MyPersonaData = myPersonaData;
+
+            Output("Sending to voice server: LocalAudioStreamState(1)...");
+            VoiceClient.SendPacket(new SanProtocol.ClientVoice.LocalAudioStreamState(VoiceClient.InstanceId, 0, 1, 1));
+
+            Output("Sending to voice server: LocalAudioPosition(0,0,0)...");
+            SetVoicePosition(new List<float>() { 0, 0, 0 }, true);
+
+            if (UseVoice)
+            {
+                AudioThread.Start();
+            }
         }
 
         private void ClientRegionMessages_OnRemoveUser(object? sender, SanProtocol.ClientRegion.RemoveUser e)
@@ -641,23 +695,101 @@ namespace SanBot.Core
         }
 
 
-        private void ClientKafkaMessages_OnLoginReply(object? sender, LoginReply e)
-        {
-            //KafkaClient_OnOutput(sender, $"Got login reply: {e.Success}");
-            //if(e.Message != "")
-            //{
-            //    KafkaClient_OnOutput(sender, $"  [{e.MessageId}] {e.Message}");
-            //}
-        }
-        
         private void ClientRegionMessages_OnUserLoginReply(object? sender, SanProtocol.ClientRegion.UserLoginReply e)
         {
-            //RegionClient_OnOutput(sender, $"Got login reply: {e.Success}");
-            //if (e.MessageId != 0)
-            //{
-            //    RegionClient_OnOutput(sender, $"  MessageID {e.MessageId}");
-            //}
-            //RegionClient_OnOutput(sender, "Privileges:\n" + String.Join(Environment.NewLine, e.Privileges));
+            if (!e.Success)
+            {
+                throw new Exception("Failed to enter region");
+            }
+
+            Output("Logged into region: " + e.ToString());
+
+            if (!AutomaticallySendClientReady)
+            {
+                return;
+            }
+
+            var regionAddress = CurrentInstanceId!.Format();
+            KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
+                regionAddress
+            ));
+
+            RegionClient.SendPacket(new SanProtocol.ClientRegion.ClientDynamicReady(
+                new List<float>() { 0, 0, 0 },
+                new List<float>() { 1, 0, 0, 0 },
+                new SanUUID(MyPersonaDetails!.Id),
+                "",
+                0,
+                1
+            ));
+
+            RegionClient.SendPacket(new SanProtocol.ClientRegion.ClientStaticReady(
+                1
+            ));
+        }
+
+        public void Speak(byte[] rawPcmBytes)
+        {
+            const int kFrameSize = 960;
+            const int kFrequency = 48000;
+
+            var pcmSamples = new short[rawPcmBytes.Length / 2];
+            Buffer.BlockCopy(rawPcmBytes, 0, pcmSamples, 0, rawPcmBytes.Length);
+
+            OpusEncoder encoder = OpusEncoder.Create(kFrequency, 1, Concentus.Enums.OpusApplication.OPUS_APPLICATION_VOIP);
+
+            var totalFrames = pcmSamples.Length / 960;
+
+            List<byte[]> messages = new List<byte[]>();
+            for (int i = 0; i < totalFrames; i++)
+            {
+                var compressedBytes = new byte[1276];
+                var written = encoder.Encode(pcmSamples, kFrameSize * i, kFrameSize, compressedBytes, 0, compressedBytes.Length);
+
+                var packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
+                    CurrentInstanceId,
+                    MyPersonaData.AgentControllerId.Value,
+                    new AudioData(VoiceClient.CurrentSequence, 50, compressedBytes.Take(written).ToArray()),
+                    new SpeechGraphicsData(VoiceClient.CurrentSequence, new byte[] { }),
+                    0
+                ).GetBytes();
+                VoiceClient.CurrentSequence++;
+
+                messages.Add(packetBytes);
+            }
+
+            AudioThread.EnqueueData(messages);
+        }
+
+        private void ClientKafkaMessages_OnPrivateChat(object? sender, PrivateChat e)
+        {
+            Output($"(PRIVMSG) {e.FromPersonaId}: {e.Message}");
+        }
+
+        private void ClientKafkaMessages_OnLoginReply(object? sender, SanProtocol.ClientKafka.LoginReply e)
+        {
+            if (!e.Success)
+            {
+                throw new Exception($"KafkaClient failed to login: {e.Message}");
+            }
+
+            Output("Kafka client logged in successfully");
+            //    https://atlas.sansar.com/experiences/mijekamunro/bingo-oracle
+            // default bot
+            // Driver.WebApi.SetAvatarIdAsync(Driver.MyPersonaDetails.Id, "43668ab727c00fd7d33a5af1085493dd").Wait();
+
+            // Driver.JoinRegion("djm3n4c3-9174", "dj-s-outside-fun2").Wait();
+            //   Driver.JoinRegion("sansar-studios", "social-hub").Wait();
+            //  Driver.JoinRegion("sansar-studios", "social-hub").Wait();
+            //  Driver.JoinRegion("lozhyde", "sxc").Wait();
+            // Driver.JoinRegion("mijekamunro", "bingo-oracle").Wait();
+            //  Driver.JoinRegion("nopnopnop", "owo").Wait();
+            //Driver.JoinRegion("nop", "rce-poc").Wait();
+            // Driver.JoinRegion("princesspea-0197", "wanderlust").Wait();
+            if(RegionToJoin != null)
+            {
+                JoinRegion(RegionToJoin.Value.PersonaHandle, RegionToJoin.Value.SceneHandle).Wait();
+            }
         }
 
         public void Disconnect()
