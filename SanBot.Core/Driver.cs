@@ -15,6 +15,10 @@ using static SanBot.Database.Services.PersonaService;
 using SanBot.Database;
 using Concentus.Structs;
 using SanProtocol.ClientVoice;
+using Microsoft.CognitiveServices.Speech.Audio;
+using Microsoft.CognitiveServices.Speech;
+using Google.Cloud.TextToSpeech.V1;
+using NAudio.Wave;
 
 namespace SanBot.Core
 {
@@ -29,6 +33,8 @@ namespace SanBot.Core
         public ulong? AgentComponentId { get; set; }
         public uint? ClusterId { get; set; }
         public uint? CharacterObjectId { get; set; }
+
+        public List<float> Position { get; set; } = new List<float>() { 0.0f, 0.0f, 0.0f };
 
         public SanProtocol.AnimationComponent.CharacterTransform? LastTransform { get; set; }
         public CharacterControllerInput? LastControllerInput { get; set; }
@@ -45,6 +51,8 @@ namespace SanBot.Core
             SceneHandle = sceneHandle;
         }
     }
+
+
 
     public class Driver
     {
@@ -106,6 +114,7 @@ namespace SanBot.Core
             RegionClient.WorldStateMessages.OnCreateAgentController += WorldStateMessages_OnCreateAgentController;
             RegionClient.WorldStateMessages.OnDestroyAgentController += WorldStateMessages_OnDestroyAgentController;
             RegionClient.WorldStateMessages.OnDestroyCluster += WorldStateMessages_OnDestroyCluster;
+            RegionClient.WorldStateMessages.OnCreateClusterViaDefinition += WorldStateMessages_OnCreateClusterViaDefinition;
 
             VoiceClient.ClientVoiceMessages.OnLocalAudioData += ClientVoiceMessages_OnLocalAudioData;
 
@@ -113,6 +122,18 @@ namespace SanBot.Core
             AudioThread = new VoiceAudioThread(VoiceClient.SendRaw, TryToAvoidInterruptingPeople);
         }
 
+
+        public bool HaveIBeenCreatedYet { get; set; }
+        public Dictionary<uint, List<float>> InitialClusterPositions { get; set; } = new Dictionary<uint, List<float>>();
+
+        private void WorldStateMessages_OnCreateClusterViaDefinition(object? sender, SanProtocol.WorldState.CreateClusterViaDefinition e)
+        {
+            if (!HaveIBeenCreatedYet)
+            {
+                InitialClusterPositions[e.ClusterId] = e.SpawnPosition;
+                return;
+            }
+        }
 
         private void ClientVoiceMessages_OnLocalAudioData(object? sender, SanProtocol.ClientVoice.LocalAudioData e)
         {
@@ -192,6 +213,15 @@ namespace SanBot.Core
             personaData.CharacterObjectId = e.CharacterObjectId;
             personaData.ClusterId = e.ClusterId;
             personaData.AgentComponentId = e.CharacterObjectId * 0x100000000ul;
+
+            if (InitialClusterPositions.ContainsKey(e.ClusterId))
+            {
+                Output($"Found my initial cluster position for agent session {e.SessionId}");
+                var initialPosition = InitialClusterPositions[e.ClusterId];
+                personaData.Position[0] = initialPosition[0];
+                personaData.Position[1] = initialPosition[1];
+                personaData.Position[2] = initialPosition[2];
+            }
         }
 
         private void WorldStateMessages_OnDestroyAgentController(object? sender, SanProtocol.WorldState.DestroyAgentController e)
@@ -221,10 +251,12 @@ namespace SanBot.Core
                 return;
             }
 
+            HaveIBeenCreatedYet = true;
+
             MyPersonaData = myPersonaData;
 
             Output("Sending to voice server: LocalAudioStreamState(1)...");
-            VoiceClient.SendPacket(new SanProtocol.ClientVoice.LocalAudioStreamState(VoiceClient.InstanceId, 0, 1, 1));
+            VoiceClient.SendPacket(new SanProtocol.ClientVoice.LocalAudioStreamState(VoiceClient.InstanceId, myPersonaData.AgentControllerId ?? 0, 1, 1));
 
             Output("Sending to voice server: LocalAudioPosition(0,0,0)...");
             SetVoicePosition(new List<float>() { 0, 0, 0 }, true);
@@ -238,7 +270,7 @@ namespace SanBot.Core
         private void ClientRegionMessages_OnRemoveUser(object? sender, SanProtocol.ClientRegion.RemoveUser e)
         {
             var personaData = PersonasBySessionId
-                .Where(n => n.Value.AgentControllerId == e.SessionId)
+                .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
 
@@ -292,6 +324,9 @@ namespace SanBot.Core
             }
 
             personaData.LastTransform = e;
+            personaData.Position[0] = e.Position[0];
+            personaData.Position[1] = e.Position[1];
+            personaData.Position[2] = e.Position[2];
         }
         private void AnimationComponentMessages_OnCharacterTransform(object? sender, SanProtocol.AnimationComponent.CharacterTransform e)
         {
@@ -305,6 +340,9 @@ namespace SanBot.Core
             }
 
             personaData.LastTransform = e;
+            personaData.Position[0] = e.Position[0];
+            personaData.Position[1] = e.Position[1];
+            personaData.Position[2] = e.Position[2];
         }
         #endregion
 
@@ -624,8 +662,75 @@ namespace SanBot.Core
             OnOutput?.Invoke(this, str);
         }
 
+        public string GetSanbotConfigPath()
+        {
+            return Path.Join(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "SanBot"
+            );
+        }
+
+
+
+        public class GoogleConfigPayload
+        {
+            public string key { get; set; }
+        }
+        public class AzureConfigPayload
+        {
+            public string key1 { get; set; }
+            public string region { get; set; }
+        }
+        private AzureConfigPayload? AzureConfig { get; set; }
+        private GoogleConfigPayload? GoogleConfig { get; set; }
+
         public async Task StartAsync(ConfigFile config)
         {
+            AzureConfig = null;
+            GoogleConfig = null;
+
+            if(false)
+            {
+                try
+                {
+                    var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
+                    var configFileContents = File.ReadAllText(azureConfigPath);
+                    var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
+                    if (result == null || result.key1.Length == 0 || result.region.Length == 0)
+                    {
+                        throw new Exception("Invalid azure config");
+                    }
+
+                    AzureConfig = result;
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Missing or invalid azure config", ex);
+                }
+            }
+            if(true)
+            {
+                try
+                {
+                    var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
+                    var configFileContents = File.ReadAllText(azureConfigPath);
+                    var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
+                    if (result == null || result.key1.Length == 0 || result.region.Length == 0)
+                    {
+                        throw new Exception("Invalid azure config");
+                    }
+
+                    AzureConfig = result;
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Missing or invalid azure config", ex);
+                }
+            }
+
+
+
+
             await WebApi.Login(config.Username, config.Password);
 
             Output("Getting TOS status...");
@@ -659,6 +764,10 @@ namespace SanBot.Core
             Output("Posting to account connector...");
             var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
+
+
+
+         //   WebApi.SetAvatarIdAsync(MyPersonaDetails.Id, "43668ab727c00fd7d33a5af1085493dd").Wait();
 
             Output("Driver intialized. Starting KafkaClient");
             KafkaClient.Start(
@@ -728,6 +837,177 @@ namespace SanBot.Core
             ));
         }
 
+        public class AudioStreamHandler : PushAudioOutputStreamCallback
+        {
+            public List<byte[]> CollectedBytes { get; set; } = new List<byte[]>();
+
+            public Driver Driver { get; set; }
+            public AudioStreamHandler(Driver driver)
+            {
+                this.Driver = driver;
+            }
+
+            public override uint Write(byte[] dataBuffer)
+            {
+                Driver.Output($"Write() - Added {dataBuffer.Length} bytes to the buffer");
+                CollectedBytes.Add(dataBuffer);
+
+                return (uint)dataBuffer.Length;
+            }
+
+            public override void Close()
+            {
+                Driver.Output("Audio data is ready to be consumed");
+
+                long totalSize = 0;
+                foreach (var item in CollectedBytes)
+                {
+                    totalSize += item.Length;
+                }
+
+                var buffer = new byte[totalSize];
+                var bufferOffset = 0;
+
+                foreach (var item in CollectedBytes)
+                {
+                    item.CopyTo(buffer, bufferOffset);
+                    bufferOffset += item.Length;
+                }
+
+                Driver.Speak(buffer);
+                base.Close();
+            }
+        }
+
+        static void OutputSpeechSynthesisResult(SpeechSynthesisResult speechSynthesisResult)
+        {
+            switch (speechSynthesisResult.Reason)
+            {
+                case ResultReason.SynthesizingAudioCompleted:
+                    Console.WriteLine($"Speech synthesized");
+                    break;
+                case ResultReason.Canceled:
+                    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
+                    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
+
+                    if (cancellation.Reason == CancellationReason.Error)
+                    {
+                        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
+                        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
+                        Console.WriteLine($"CANCELED: Did you set the speech resource key and region values?");
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        DateTime LastSpoke = DateTime.Now;
+        public HashSet<string> PreviousMessages { get; set; } = new HashSet<string>();
+        public string TextToSpeechVoice { get; set; } = $"<speak xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xmlns:emo='http://www.w3.org/2009/10/emotionml' version='1.0' xml:lang='en-US'><voice name=\"en-US-JennyNeural\"><prosody volume='40'  rate=\'20%\' pitch=\'0%\'>#MESSAGE#</prosody></voice></speak>";
+        public string GoogleTTSName { get; set; } = "";
+        public float GoogleTTSRate { get; set; } = 1.0f;
+        public float GoogleTTSPitch { get; set; } = 0;
+
+        public void Speak(string message, bool allowRepeating = false)
+        {
+            if (message.Length >= 256)
+            {
+                Output($"Ignored, too long ${message.Length}");
+                return;
+            }
+
+            //if ((DateTime.Now - LastSpoke).TotalSeconds <= 1)
+            //{
+            //    Output($"Ignored, only {(DateTime.Now - LastSpoke).TotalSeconds} since last speaking");
+            //    return;
+            //}
+
+            if (!allowRepeating && PreviousMessages.Contains(message))
+            {
+                return;
+            }
+            PreviousMessages.Add(message);
+
+
+            var client = TextToSpeechClient.Create();
+
+            var input = new SynthesisInput
+            {
+                Text = message,
+                
+            };
+            var voiceSelection = new VoiceSelectionParams
+            {
+                LanguageCode = "en-US",
+                Name = GoogleTTSName,
+                SsmlGender = SsmlVoiceGender.Neutral
+            };
+            var audioConfig = new Google.Cloud.TextToSpeech.V1.AudioConfig
+            {
+                AudioEncoding = AudioEncoding.Mp3,
+                SampleRateHertz = 48000,
+                SpeakingRate = GoogleTTSRate,
+                Pitch = GoogleTTSPitch
+            };
+            var response = client.SynthesizeSpeech(input, voiceSelection, audioConfig);
+
+            using (MemoryStream mp3Stream = new MemoryStream())
+            {
+                response.AudioContent.WriteTo(mp3Stream);
+                mp3Stream.Position = 0;
+
+                WaveStream pcm = WaveFormatConversionStream.CreatePcmStream(new Mp3FileReader(mp3Stream));
+                byte[] bytes = new byte[pcm.Length];
+                pcm.Position = 0;
+                pcm.Read(bytes, 0, (int)pcm.Length);
+                //File.WriteAllBytes("Bot.pcm", bytes);
+                Speak(bytes);
+            }
+
+            LastSpoke = DateTime.Now;
+        }
+
+
+        public void SpeakAzure(string message, bool allowRepeating = false)
+        {
+            if (message.Length >= 256)
+            {
+                Output($"Ignored, too long ${message.Length}");
+                return;
+            }
+
+            //if ((DateTime.Now - LastSpoke).TotalSeconds <= 1)
+            //{
+            //    Output($"Ignored, only {(DateTime.Now - LastSpoke).TotalSeconds} since last speaking");
+            //    return;
+            //}
+
+            if (!allowRepeating && PreviousMessages.Contains(message))
+            {
+                return;
+            }
+            PreviousMessages.Add(message);
+
+            var speechConfig = SpeechConfig.FromSubscription(AzureConfig.key1, AzureConfig.region);
+            speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Raw48Khz16BitMonoPcm);
+            speechConfig.SpeechSynthesisVoiceName = "en-US-JennyNeural";
+            //speechConfig.SpeechSynthesisVoiceName = "en-US-AnaNeural";
+
+            var audioCallbackHandler = new AudioStreamHandler(this);
+            using (var audioConfig = Microsoft.CognitiveServices.Speech.Audio.AudioConfig.FromStreamOutput(audioCallbackHandler))
+            {
+                using (var speechSynthesizer = new SpeechSynthesizer(speechConfig, audioConfig))
+                {
+                    var ssml = TextToSpeechVoice.Replace("#MESSAGE#", message);
+                    var speechSynthesisResult = speechSynthesizer.SpeakSsmlAsync(ssml).Result;
+                    OutputSpeechSynthesisResult(speechSynthesisResult);
+                }
+            }
+
+            LastSpoke = DateTime.Now;
+        }
+
         public void Speak(byte[] rawPcmBytes)
         {
             const int kFrameSize = 960;
@@ -749,7 +1029,7 @@ namespace SanBot.Core
                 var packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
                     CurrentInstanceId,
                     MyPersonaData.AgentControllerId.Value,
-                    new AudioData(VoiceClient.CurrentSequence, 50, compressedBytes.Take(written).ToArray()),
+                    new AudioData(VoiceClient.CurrentSequence, 1000, compressedBytes.Take(written).ToArray()),
                     new SpeechGraphicsData(VoiceClient.CurrentSequence, new byte[] { }),
                     0
                 ).GetBytes();
@@ -809,15 +1089,33 @@ namespace SanBot.Core
 
             if (KafkaClient != null)
             {
-                handledData |= KafkaClient.Poll();
+                var clientHadData = true;
+
+                while(clientHadData)
+                {
+                    clientHadData = KafkaClient.Poll();
+                    handledData |= clientHadData;
+                }
             }
             if (RegionClient != null)
             {
-                handledData |= RegionClient.Poll();
+                var clientHadData = true;
+
+                while (clientHadData)
+                {
+                    clientHadData = RegionClient.Poll();
+                    handledData |= clientHadData;
+                }
             }
             if (VoiceClient != null)
             {
-                handledData |= VoiceClient.Poll();
+                var clientHadData = true;
+
+                while (clientHadData)
+                {
+                    clientHadData = VoiceClient.Poll();
+                    handledData |= clientHadData;
+                }
             }
 
             return handledData;
