@@ -89,6 +89,8 @@ namespace SanBot.Core
             }
         }
 
+
+        byte[] PollBuffer = new byte[16384];
         public bool Poll()
         {
             if(accountConductor.Available == 0)
@@ -97,12 +99,11 @@ namespace SanBot.Core
             }
 
             var instream = accountConductor.GetStream();
-            var buffer = new byte[16384];
 
             while (accountConductor.Available > 0)
             {
-                var numBytesRead = instream.Read(buffer, 0, buffer.Length);
-                PacketBuffer.AppendBytes(buffer, numBytesRead);
+                var numBytesRead = instream.Read(PollBuffer, 0, PollBuffer.Length);
+                PacketBuffer.AppendBytes(PollBuffer, numBytesRead);
             }
 
             foreach (var packet in PacketBuffer.Packets)

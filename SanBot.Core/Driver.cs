@@ -25,10 +25,10 @@ namespace SanBot.Core
     public class PersonaData
     {
         public uint SessionId { get; set; }
-        public string UserName { get; set; }
-        public string Handle { get; set; }
-        public string AvatarType { get; set; }
-        public SanUUID PersonaId { get; set; }
+        public string UserName { get; set; } = default!;
+        public string Handle { get; set; } = default!;
+        public string AvatarType { get; set; } = default!;
+        public SanUUID PersonaId { get; set; } = default!;
         public uint? AgentControllerId { get; set; }
         public ulong? AgentComponentId { get; set; }
         public uint? ClusterId { get; set; }
@@ -674,12 +674,12 @@ namespace SanBot.Core
 
         public class GoogleConfigPayload
         {
-            public string key { get; set; }
+            public string key { get; set; } = default!;
         }
         public class AzureConfigPayload
         {
-            public string key1 { get; set; }
-            public string region { get; set; }
+            public string key1 { get; set; } = default!;
+            public string region { get; set; } = default!;
         }
         private AzureConfigPayload? AzureConfig { get; set; }
         private GoogleConfigPayload? GoogleConfig { get; set; }
@@ -708,7 +708,7 @@ namespace SanBot.Core
                     throw new Exception("Missing or invalid azure config", ex);
                 }
             }
-            if(true)
+            if(false)
             {
                 try
                 {
