@@ -13,6 +13,7 @@ namespace SanBot.Core
 {
     public class RegionClient
     {
+        private object accountConductorLock = new object();
         TcpClient accountConductor = new TcpClient();
         public event EventHandler<string>? OnOutput;
 
@@ -34,6 +35,8 @@ namespace SanBot.Core
         public Render RenderMessages { get; set; }
         public Simulation SimulationMessages { get; set; }
         public WorldState WorldStateMessages { get; set; }
+
+        private NetworkWriter _networkWriter;
 
         public RegionClient(Driver driver)
         {
@@ -63,6 +66,9 @@ namespace SanBot.Core
                 SimulationMessages,
                 WorldStateMessages,
             };
+
+            _networkWriter = new NetworkWriter(accountConductor, accountConductorLock);
+            _networkWriter.Start();
         }
 
         public void Start(string hostname, int port, uint secret)
@@ -89,11 +95,10 @@ namespace SanBot.Core
             }
         }
 
-
         byte[] PollBuffer = new byte[16384];
         public bool Poll()
         {
-            if(accountConductor.Available == 0)
+            if (accountConductor.Available == 0)
             {
                 return false;
             }
@@ -117,27 +122,9 @@ namespace SanBot.Core
 
         public void SendPacket(IPacket packet)
         {
-            SendRaw(packet.GetBytes());
+            _networkWriter.SendPacket(packet);
         }
 
-        public void SendRaw(byte[] bytes)
-        {
-            BinaryWriter bw = new BinaryWriter(accountConductor.GetStream());
-            bw.Write(bytes.Length);
-
-            var bytesRemaining = bytes.Length;
-            var bytesOffset = 0;
-            while (bytesRemaining > 0)
-            {
-                var bytesToSend = bytesRemaining > 4096 ? 4096 : bytesRemaining;
-
-                bw.Write(bytes, bytesOffset, bytesToSend);
-
-                bytesRemaining -= bytesToSend;
-                bytesOffset += bytesToSend;
-            }
-        }
-        
         private void HandlePacket(byte[] packet)
         {
             using (BinaryReader br = new BinaryReader(new MemoryStream(packet)))
