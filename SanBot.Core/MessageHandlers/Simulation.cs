@@ -17,43 +17,43 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<RigidBodyPropertyChanged>? OnRigidBodyPropertyChanged;
         public event EventHandler<RigidBodyDestroyed>? OnRigidBodyDestroyed;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.Simulation.InitialTimestamp:
                 {
-                    this.HandleInitialTimestamp(reader);
+                    OnInitialTimestamp?.Invoke(this, (InitialTimestamp)packet);
                     break;
                 }
                 case Messages.Simulation.Timestamp:
                 {
-                    this.HandleTimestamp(reader);
+                    OnTimestamp?.Invoke(this, (Timestamp)packet);
                     break;
                 }
                 case Messages.Simulation.SetWorldGravityMagnitude:
                 {
-                    this.HandleSetWorldGravityMagnitude(reader);
+                    OnSetWorldGravityMagnitude?.Invoke(this, (SetWorldGravityMagnitude)packet);
                     break;
                 }
                 case Messages.Simulation.ActiveRigidBodyUpdate:
                 {
-                    this.HandleActiveRigidBodyUpdate(reader);
+                    OnActiveRigidBodyUpdate?.Invoke(this, (ActiveRigidBodyUpdate)packet);
                     break;
                 }
                 case Messages.Simulation.RigidBodyDeactivated:
                 {
-                    this.HandleRigidBodyDeactivated(reader);
+                    OnRigidBodyDeactivated?.Invoke(this, (RigidBodyDeactivated)packet);
                     break;
                 }
                 case Messages.Simulation.RigidBodyPropertyChanged:
                 {
-                    this.HandleRigidBodyPropertyChanged(reader);
+                    OnRigidBodyPropertyChanged?.Invoke(this, (RigidBodyPropertyChanged)packet);
                     break;
                 }
                 case Messages.Simulation.RigidBodyDestroyed:
                 {
-                    this.HandleRigidBodyDestroyed(reader);
+                    OnRigidBodyDestroyed?.Invoke(this, (RigidBodyDestroyed)packet);
                     break;
                 }
                 default:
@@ -65,47 +65,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleInitialTimestamp(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new InitialTimestamp(reader);
-            OnInitialTimestamp?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
-
-        void HandleTimestamp(BinaryReader reader)
-        {
-            var packet = new Timestamp(reader);
-            OnTimestamp?.Invoke(this, packet);
-        }
-
-        void HandleSetWorldGravityMagnitude(BinaryReader reader)
-        {
-            var packet = new SetWorldGravityMagnitude(reader);
-            OnSetWorldGravityMagnitude?.Invoke(this, packet);
-        }
-
-        void HandleActiveRigidBodyUpdate(BinaryReader reader)
-        {
-            var packet = new ActiveRigidBodyUpdate(reader);
-            OnActiveRigidBodyUpdate?.Invoke(this, packet);
-        }
-
-        void HandleRigidBodyDeactivated(BinaryReader reader)
-        {
-            var packet = new RigidBodyDeactivated(reader);
-            OnRigidBodyDeactivated?.Invoke(this, packet);
-        }
-
-        void HandleRigidBodyPropertyChanged(BinaryReader reader)
-        {
-            var packet = new RigidBodyPropertyChanged(reader);
-            OnRigidBodyPropertyChanged?.Invoke(this, packet);
-        }
-
-        void HandleRigidBodyDestroyed(BinaryReader reader)
-        {
-            var packet = new RigidBodyDestroyed(reader);
-            OnRigidBodyDestroyed?.Invoke(this, packet);
-        }
-
     }
 }

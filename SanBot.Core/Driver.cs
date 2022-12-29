@@ -242,21 +242,20 @@ namespace SanBot.Core
         private void ClientRegionMessages_OnSetAgentController(object? sender, SanProtocol.ClientRegion.SetAgentController e)
         {
             var myPersonaData = this.PersonasBySessionId
-                .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
+                .Where(n => n.Value.SessionId == MySessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
             if (myPersonaData == null)
             {
-                Output($"SetAgentController: Attempted to set agent controller to an unknown controller {e.AgentControllerId}");
+                Output($"SetAgentController: I got OnSetAgentController, but I can't find my Id in PersonasBySessionId? AgentController={e.AgentControllerId}");
                 return;
             }
 
+            myPersonaData.AgentControllerId = e.AgentControllerId;
             HaveIBeenCreatedYet = true;
 
-            MyPersonaData = myPersonaData;
-
             Output("Sending to voice server: LocalAudioStreamState(1)...");
-            VoiceClient.SendPacket(new SanProtocol.ClientVoice.LocalAudioStreamState(VoiceClient.InstanceId, myPersonaData.AgentControllerId ?? 0, 1, 1));
+            VoiceClient.SendPacket(new SanProtocol.ClientVoice.LocalAudioStreamState(VoiceClient.InstanceId, e.AgentControllerId, 1, 1));
 
             Output("Sending to voice server: LocalAudioPosition(0,0,0)...");
             SetVoicePosition(new List<float>() { 0, 0, 0 }, true);
@@ -288,12 +287,25 @@ namespace SanBot.Core
         private void ClientRegionMessages_OnAddUser(object? sender, SanProtocol.ClientRegion.AddUser e)
         {
             var personaData = PersonasBySessionId
-                .Where(n => n.Value.AgentControllerId == e.SessionId)
+                .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
             if (personaData != null)
             {
-                Output($"WARNING: Adding a new user who has the session ID of a previous user. Overwriting previous session data");
+                if(e.SessionId != MySessionId)
+                {
+                    Output($"WARNING: Adding a new user who has the session ID of a previous user. Overwriting previous session data");
+                }
+                else
+                {
+                    personaData.SessionId = e.SessionId;
+                    personaData.AvatarType = e.AvatarType;
+                    personaData.Handle = e.Handle;
+                    personaData.PersonaId = e.PersonaId;
+                    personaData.UserName = e.UserName;
+                    Output($"I have entered the region as session {e.SessionId}");
+                    return;
+                }
             }
 
             PersonasBySessionId[e.SessionId] = new PersonaData()
@@ -804,6 +816,7 @@ namespace SanBot.Core
         }
 
 
+        public uint? MySessionId { get; set; }
         private void ClientRegionMessages_OnUserLoginReply(object? sender, SanProtocol.ClientRegion.UserLoginReply e)
         {
             if (!e.Success)
@@ -817,6 +830,18 @@ namespace SanBot.Core
             {
                 return;
             }
+
+            MySessionId = e.SessionId;
+            Output("My session ID is " + e.SessionId);
+            if(this.PersonasBySessionId.ContainsKey(e.SessionId))
+            {
+                Output("*** Oh no, we were assigned session ID " + e.SessionId + ", but session ID " + e.SessionId + " already belongs to: " + PersonasBySessionId[e.SessionId].UserName ?? "UNKNOWN");
+            }
+            MyPersonaData = new PersonaData()
+            {
+                SessionId = e.SessionId,
+            };
+            this.PersonasBySessionId[e.SessionId] = MyPersonaData;
 
             var regionAddress = CurrentInstanceId!.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(

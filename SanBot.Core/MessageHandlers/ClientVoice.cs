@@ -242,5 +242,10 @@ namespace SanBot.Core.MessageHandlers
             var packet = new VoiceNotification(reader);
             OnVoiceNotification?.Invoke(this, packet);
         }
+
+        public bool OnMessage(IPacket packet)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

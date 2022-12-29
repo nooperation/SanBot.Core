@@ -41,164 +41,164 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<BeginEditServerSpawn>? OnBeginEditServerSpawn;
         public event EventHandler<EditServerSpawnReady>? OnEditServerSpawnReady;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
 
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.EditServer.UserLogin:
                 {
-                    this.HandleUserLogin(reader);
+                    OnUserLogin?.Invoke(this, (UserLogin)packet);
                     break;
                 }
                 case Messages.EditServer.UserLoginReply:
                 {
-                    this.HandleUserLoginReply(reader);
+                    OnUserLoginReply?.Invoke(this, (UserLoginReply)packet);
                     break;
                 }
                 case Messages.EditServer.AddUser:
                 {
-                    this.HandleAddUser(reader);
+                    OnAddUser?.Invoke(this, (AddUser)packet);
                     break;
                 }
                 case Messages.EditServer.RemoveUser:
                 {
-                    this.HandleRemoveUser(reader);
+                    OnRemoveUser?.Invoke(this, (RemoveUser)packet);
                     break;
                 }
                 case Messages.EditServer.OpenWorkspace:
                 {
-                    this.HandleOpenWorkspace(reader);
+                    OnOpenWorkspace?.Invoke(this, (OpenWorkspace)packet);
                     break;
                 }
                 case Messages.EditServer.CloseWorkspace:
                 {
-                    this.HandleCloseWorkspace(reader);
+                    OnCloseWorkspace?.Invoke(this, (CloseWorkspace)packet);
                     break;
                 }
                 case Messages.EditServer.EditWorkspaceCommand:
                 {
-                    this.HandleEditWorkspaceCommand(reader);
+                    OnEditWorkspaceCommand?.Invoke(this, (EditWorkspaceCommand)packet);
                     break;
                 }
                 case Messages.EditServer.SaveWorkspace:
                 {
-                    this.HandleSaveWorkspace(reader);
+                    OnSaveWorkspace?.Invoke(this, (SaveWorkspace)packet);
                     break;
                 }
                 case Messages.EditServer.SaveWorkspaceReply:
                 {
-                    this.HandleSaveWorkspaceReply(reader);
+                    OnSaveWorkspaceReply?.Invoke(this, (SaveWorkspaceReply)packet);
                     break;
                 }
                 case Messages.EditServer.BuildWorkspace:
                 {
-                    this.HandleBuildWorkspace(reader);
+                    OnBuildWorkspace?.Invoke(this, (BuildWorkspace)packet);
                     break;
                 }
                 case Messages.EditServer.UpdateWorkspaceClientBuiltBakeData:
                 {
-                    this.HandleUpdateWorkspaceClientBuiltBakeData(reader);
+                    OnUpdateWorkspaceClientBuiltBakeData?.Invoke(this, (UpdateWorkspaceClientBuiltBakeData)packet);
                     break;
                 }
                 case Messages.EditServer.BuildWorkspaceCompileReply:
                 {
-                    this.HandleBuildWorkspaceCompileReply(reader);
+                    OnBuildWorkspaceCompileReply?.Invoke(this, (BuildWorkspaceCompileReply)packet);
                     break;
                 }
                 case Messages.EditServer.BuildWorkspaceProgressUpdate:
                 {
-                    this.HandleBuildWorkspaceProgressUpdate(reader);
+                    OnBuildWorkspaceProgressUpdate?.Invoke(this, (BuildWorkspaceProgressUpdate)packet);
                     break;
                 }
                 case Messages.EditServer.BuildWorkspaceUploadReply:
                 {
-                    this.HandleBuildWorkspaceUploadReply(reader);
+                    OnBuildWorkspaceUploadReply?.Invoke(this, (BuildWorkspaceUploadReply)packet);
                     break;
                 }
                 case Messages.EditServer.WorkspaceReadyReply:
                 {
-                    this.HandleWorkspaceReadyReply(reader);
+                    OnWorkspaceReadyReply?.Invoke(this, (WorkspaceReadyReply)packet);
                     break;
                 }
                 case Messages.EditServer.SaveWorkspaceSelectionToInventory:
                 {
-                    this.HandleSaveWorkspaceSelectionToInventory(reader);
+                    OnSaveWorkspaceSelectionToInventory?.Invoke(this, (SaveWorkspaceSelectionToInventory)packet);
                     break;
                 }
                 case Messages.EditServer.SaveWorkspaceSelectionToInventoryReply:
                 {
-                    this.HandleSaveWorkspaceSelectionToInventoryReply(reader);
+                    OnSaveWorkspaceSelectionToInventoryReply?.Invoke(this, (SaveWorkspaceSelectionToInventoryReply)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryCreateItem:
                 {
-                    this.HandleInventoryCreateItem(reader);
+                    OnInventoryCreateItem?.Invoke(this, (InventoryCreateItem)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryDeleteItem:
                 {
-                    this.HandleInventoryDeleteItem(reader);
+                    OnInventoryDeleteItem?.Invoke(this, (InventoryDeleteItem)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryChangeItemName:
                 {
-                    this.HandleInventoryChangeItemName(reader);
+                    OnInventoryChangeItemName?.Invoke(this, (InventoryChangeItemName)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryChangeItemState:
                 {
-                    this.HandleInventoryChangeItemState(reader);
+                    OnInventoryChangeItemState?.Invoke(this, (InventoryChangeItemState)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryModifyItemThumbnailAssetId:
                 {
-                    this.HandleInventoryModifyItemThumbnailAssetId(reader);
+                    OnInventoryModifyItemThumbnailAssetId?.Invoke(this, (InventoryModifyItemThumbnailAssetId)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryModifyItemCapabilities:
                 {
-                    this.HandleInventoryModifyItemCapabilities(reader);
+                    OnInventoryModifyItemCapabilities?.Invoke(this, (InventoryModifyItemCapabilities)packet);
                     break;
                 }
                 case Messages.EditServer.InventorySaveItem:
                 {
-                    this.HandleInventorySaveItem(reader);
+                    OnInventorySaveItem?.Invoke(this, (InventorySaveItem)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryUpdateItemReply:
                 {
-                    this.HandleInventoryUpdateItemReply(reader);
+                    OnInventoryUpdateItemReply?.Invoke(this, (InventoryUpdateItemReply)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryItemUpload:
                 {
-                    this.HandleInventoryItemUpload(reader);
+                    OnInventoryItemUpload?.Invoke(this, (InventoryItemUpload)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryItemUploadReply:
                 {
-                    this.HandleInventoryItemUploadReply(reader);
+                    OnInventoryItemUploadReply?.Invoke(this, (InventoryItemUploadReply)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryCreateListing:
                 {
-                    this.HandleInventoryCreateListing(reader);
+                    OnInventoryCreateListing?.Invoke(this, (InventoryCreateListing)packet);
                     break;
                 }
                 case Messages.EditServer.InventoryCreateListingReply:
                 {
-                    this.HandleInventoryCreateListingReply(reader);
+                    OnInventoryCreateListingReply?.Invoke(this, (InventoryCreateListingReply)packet);
                     break;
                 }
                 case Messages.EditServer.BeginEditServerSpawn:
                 {
-                    this.HandleBeginEditServerSpawn(reader);
+                    OnBeginEditServerSpawn?.Invoke(this, (BeginEditServerSpawn)packet);
                     break;
                 }
                 case Messages.EditServer.EditServerSpawnReady:
                 {
-                    this.HandleEditServerSpawnReady(reader);
+                    OnEditServerSpawnReady?.Invoke(this, (EditServerSpawnReady)packet);
                     break;
                 }
                 default:
@@ -210,190 +210,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleUserLogin(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new UserLogin(reader);
-            OnUserLogin?.Invoke(this, packet);
-        }
-
-        void HandleUserLoginReply(BinaryReader reader)
-        {
-            var packet = new UserLoginReply(reader);
-            OnUserLoginReply?.Invoke(this, packet);
-        }
-
-        void HandleAddUser(BinaryReader reader)
-        {
-            var packet = new AddUser(reader);
-            OnAddUser?.Invoke(this, packet);
-        }
-
-        void HandleRemoveUser(BinaryReader reader)
-        {
-            var packet = new RemoveUser(reader);
-            OnRemoveUser?.Invoke(this, packet);
-        }
-
-        void HandleOpenWorkspace(BinaryReader reader)
-        {
-            var packet = new OpenWorkspace(reader);
-            OnOpenWorkspace?.Invoke(this, packet);
-        }
-
-        void HandleCloseWorkspace(BinaryReader reader)
-        {
-            var packet = new CloseWorkspace(reader);
-            OnCloseWorkspace?.Invoke(this, packet);
-        }
-
-        void HandleEditWorkspaceCommand(BinaryReader reader)
-        {
-            var packet = new EditWorkspaceCommand(reader);
-            OnEditWorkspaceCommand?.Invoke(this, packet);
-        }
-
-        void HandleSaveWorkspace(BinaryReader reader)
-        {
-            var packet = new SaveWorkspace(reader);
-            OnSaveWorkspace?.Invoke(this, packet);
-        }
-
-        void HandleSaveWorkspaceReply(BinaryReader reader)
-        {
-            var packet = new SaveWorkspaceReply(reader);
-            OnSaveWorkspaceReply?.Invoke(this, packet);
-        }
-
-        void HandleBuildWorkspace(BinaryReader reader)
-        {
-            var packet = new BuildWorkspace(reader);
-            OnBuildWorkspace?.Invoke(this, packet);
-        }
-
-        void HandleUpdateWorkspaceClientBuiltBakeData(BinaryReader reader)
-        {
-            var packet = new UpdateWorkspaceClientBuiltBakeData(reader);
-            OnUpdateWorkspaceClientBuiltBakeData?.Invoke(this, packet);
-        }
-
-        void HandleBuildWorkspaceCompileReply(BinaryReader reader)
-        {
-            var packet = new BuildWorkspaceCompileReply(reader);
-            OnBuildWorkspaceCompileReply?.Invoke(this, packet);
-        }
-
-        void HandleBuildWorkspaceProgressUpdate(BinaryReader reader)
-        {
-            var packet = new BuildWorkspaceProgressUpdate(reader);
-            OnBuildWorkspaceProgressUpdate?.Invoke(this, packet);
-        }
-
-        void HandleBuildWorkspaceUploadReply(BinaryReader reader)
-        {
-            var packet = new BuildWorkspaceUploadReply(reader);
-            OnBuildWorkspaceUploadReply?.Invoke(this, packet);
-        }
-
-        void HandleWorkspaceReadyReply(BinaryReader reader)
-        {
-            var packet = new WorkspaceReadyReply(reader);
-            OnWorkspaceReadyReply?.Invoke(this, packet);
-        }
-
-        void HandleSaveWorkspaceSelectionToInventory(BinaryReader reader)
-        {
-            var packet = new SaveWorkspaceSelectionToInventory(reader);
-            OnSaveWorkspaceSelectionToInventory?.Invoke(this, packet);
-        }
-
-        void HandleSaveWorkspaceSelectionToInventoryReply(BinaryReader reader)
-        {
-            var packet = new SaveWorkspaceSelectionToInventoryReply(reader);
-            OnSaveWorkspaceSelectionToInventoryReply?.Invoke(this, packet);
-        }
-
-        void HandleInventoryCreateItem(BinaryReader reader)
-        {
-            var packet = new InventoryCreateItem(reader);
-            OnInventoryCreateItem?.Invoke(this, packet);
-        }
-
-        void HandleInventoryDeleteItem(BinaryReader reader)
-        {
-            var packet = new InventoryDeleteItem(reader);
-            OnInventoryDeleteItem?.Invoke(this, packet);
-        }
-
-        void HandleInventoryChangeItemName(BinaryReader reader)
-        {
-            var packet = new InventoryChangeItemName(reader);
-            OnInventoryChangeItemName?.Invoke(this, packet);
-        }
-
-        void HandleInventoryChangeItemState(BinaryReader reader)
-        {
-            var packet = new InventoryChangeItemState(reader);
-            OnInventoryChangeItemState?.Invoke(this, packet);
-        }
-
-        void HandleInventoryModifyItemThumbnailAssetId(BinaryReader reader)
-        {
-            var packet = new InventoryModifyItemThumbnailAssetId(reader);
-            OnInventoryModifyItemThumbnailAssetId?.Invoke(this, packet);
-        }
-
-        void HandleInventoryModifyItemCapabilities(BinaryReader reader)
-        {
-            var packet = new InventoryModifyItemCapabilities(reader);
-            OnInventoryModifyItemCapabilities?.Invoke(this, packet);
-        }
-
-        void HandleInventorySaveItem(BinaryReader reader)
-        {
-            var packet = new InventorySaveItem(reader);
-            OnInventorySaveItem?.Invoke(this, packet);
-        }
-
-        void HandleInventoryUpdateItemReply(BinaryReader reader)
-        {
-            var packet = new InventoryUpdateItemReply(reader);
-            OnInventoryUpdateItemReply?.Invoke(this, packet);
-        }
-
-        void HandleInventoryItemUpload(BinaryReader reader)
-        {
-            var packet = new InventoryItemUpload(reader);
-            OnInventoryItemUpload?.Invoke(this, packet);
-        }
-
-        void HandleInventoryItemUploadReply(BinaryReader reader)
-        {
-            var packet = new InventoryItemUploadReply(reader);
-            OnInventoryItemUploadReply?.Invoke(this, packet);
-        }
-
-        void HandleInventoryCreateListing(BinaryReader reader)
-        {
-            var packet = new InventoryCreateListing(reader);
-            OnInventoryCreateListing?.Invoke(this, packet);
-        }
-
-        void HandleInventoryCreateListingReply(BinaryReader reader)
-        {
-            var packet = new InventoryCreateListingReply(reader);
-            OnInventoryCreateListingReply?.Invoke(this, packet);
-        }
-
-        void HandleBeginEditServerSpawn(BinaryReader reader)
-        {
-            var packet = new BeginEditServerSpawn(reader);
-            OnBeginEditServerSpawn?.Invoke(this, packet);
-        }
-
-        void HandleEditServerSpawnReady(BinaryReader reader)
-        {
-            var packet = new EditServerSpawnReady(reader);
-            OnEditServerSpawnReady?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
     }
 }

@@ -22,68 +22,68 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<ScriptCameraCapture>? OnScriptCameraCapture; // NEW: 2021-03-25
         public event EventHandler<UpdateRuntimeInventorySettings>? OnUpdateRuntimeInventorySettings;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.GameWorld.Timestamp:
                 {
-                    this.HandleTimestamp(reader);
+                    OnTimestamp?.Invoke(this, (Timestamp)packet);
                     break;
                 }
                 case Messages.GameWorld.MoveEntity:
                 {
-                    this.HandleMoveEntity(reader);
+                    OnMoveEntity?.Invoke(this, (MoveEntity)packet);
                     break;
                 }
                 case Messages.GameWorld.ChangeMaterialVectorParam:
                 {
-                    this.HandleChangeMaterialVectorParam(reader);
+                    OnChangeMaterialVectorParam?.Invoke(this, (ChangeMaterialVectorParam)packet);
                     break;
                 }
                 case Messages.GameWorld.ChangeMaterialFloatParam:
                 {
-                    this.HandleChangeMaterialFloatParam(reader);
+                    OnChangeMaterialFloatParam?.Invoke(this, (ChangeMaterialFloatParam)packet);
                     break;
                 }
                 case Messages.GameWorld.ChangeMaterial:
                 {
-                    this.HandleChangeMaterial(reader);
+                    OnChangeMaterial?.Invoke(this, (ChangeMaterial)packet);
                     break;
                 }
                 case Messages.GameWorld.StaticMeshFlagsChanged:
                 {
-                    this.HandleStaticMeshFlagsChanged(reader);
+                    OnStaticMeshFlagsChanged?.Invoke(this, (StaticMeshFlagsChanged)packet);
                     break;
                 }
                 case Messages.GameWorld.StaticMeshScaleChanged:
                 {
-                    this.HandleStaticMeshScaleChanged(reader);
+                    OnStaticMeshScaleChanged?.Invoke(this, (StaticMeshScaleChanged)packet);
                     break;
                 }
                 case Messages.GameWorld.RiggedMeshFlagsChange:
                 {
-                    this.HandleRiggedMeshFlagsChange(reader);
+                    OnRiggedMeshFlagsChange?.Invoke(this, (RiggedMeshFlagsChange)packet);
                     break;
                 }
                 case Messages.GameWorld.RiggedMeshScaleChanged:
                 {
-                    this.HandleRiggedMeshScaleChanged(reader);
+                    OnRiggedMeshScaleChanged?.Invoke(this, (RiggedMeshScaleChanged)packet);
                     break;
                 }
                 case Messages.GameWorld.ScriptCameraMessage:
                 {
-                    this.HandleScriptCameraMessage(reader);
+                    OnScriptCameraMessage?.Invoke(this, (ScriptCameraMessage)packet);
                     break;
                 }
                 case Messages.GameWorld.ScriptCameraCapture:
                 {
-                    this.HandleScriptCameraCapture(reader);
+                    OnScriptCameraCapture?.Invoke(this, (ScriptCameraCapture)packet);
                     break;
                 }
                 case Messages.GameWorld.UpdateRuntimeInventorySettings:
                 {
-                    this.HandleUpdateRuntimeInventorySettings(reader);
+                    OnUpdateRuntimeInventorySettings?.Invoke(this, (UpdateRuntimeInventorySettings)packet);
                     break;
                 }
                 default:
@@ -95,76 +95,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleTimestamp(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new Timestamp(reader);
-            OnTimestamp?.Invoke(this, packet);
-        }
-
-        void HandleMoveEntity(BinaryReader reader)
-        {
-            var packet = new MoveEntity(reader);
-            OnMoveEntity?.Invoke(this, packet);
-        }
-
-        void HandleChangeMaterialVectorParam(BinaryReader reader)
-        {
-            var packet = new ChangeMaterialVectorParam(reader);
-            OnChangeMaterialVectorParam?.Invoke(this, packet);
-        }
-
-        void HandleChangeMaterialFloatParam(BinaryReader reader)
-        {
-            var packet = new ChangeMaterialFloatParam(reader);
-            OnChangeMaterialFloatParam?.Invoke(this, packet);
-        }
-
-        void HandleChangeMaterial(BinaryReader reader)
-        {
-            var packet = new ChangeMaterial(reader);
-            OnChangeMaterial?.Invoke(this, packet);
-        }
-
-        void HandleStaticMeshFlagsChanged(BinaryReader reader)
-        {
-            var packet = new StaticMeshFlagsChanged(reader);
-            OnStaticMeshFlagsChanged?.Invoke(this, packet);
-        }
-
-        void HandleStaticMeshScaleChanged(BinaryReader reader)
-        {
-            var packet = new StaticMeshScaleChanged(reader);
-            OnStaticMeshScaleChanged?.Invoke(this, packet);
-        }
-
-        void HandleRiggedMeshFlagsChange(BinaryReader reader)
-        {
-            var packet = new RiggedMeshFlagsChange(reader);
-            OnRiggedMeshFlagsChange?.Invoke(this, packet);
-        }
-
-        void HandleRiggedMeshScaleChanged(BinaryReader reader)
-        {
-            var packet = new RiggedMeshScaleChanged(reader);
-            OnRiggedMeshScaleChanged?.Invoke(this, packet);
-        }
-
-        void HandleScriptCameraMessage(BinaryReader reader)
-        {
-            var packet = new ScriptCameraMessage(reader);
-            OnScriptCameraMessage?.Invoke(this, packet);
-        }
-
-        void HandleScriptCameraCapture(BinaryReader reader)
-        {
-            var packet = new ScriptCameraCapture(reader);
-            OnScriptCameraCapture?.Invoke(this, packet);
-        }
-
-        void HandleUpdateRuntimeInventorySettings(BinaryReader reader)
-        {
-            var packet = new UpdateRuntimeInventorySettings(reader);
-            OnUpdateRuntimeInventorySettings?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
     }
 }

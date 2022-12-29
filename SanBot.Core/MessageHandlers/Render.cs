@@ -11,13 +11,13 @@ namespace SanBot.Core.MessageHandlers
     {
         public event EventHandler<LightStateChanged>? OnLightStateChanged;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.Render.LightStateChanged:
                 {
-                    this.HandleLightStateChanged(reader);
+                    OnLightStateChanged?.Invoke(this, (LightStateChanged)packet);
                     break;
                 }
                 default:
@@ -29,10 +29,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleLightStateChanged(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new LightStateChanged(reader);
-            OnLightStateChanged?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
     }
 }

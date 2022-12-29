@@ -910,5 +910,10 @@ namespace SanBot.Core.MessageHandlers
             var packet = new Login(reader);
             OnLogin?.Invoke(this, packet);
         }
+
+        public bool OnMessage(IPacket packet)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

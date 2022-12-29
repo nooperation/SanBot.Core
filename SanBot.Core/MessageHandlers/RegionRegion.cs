@@ -14,28 +14,28 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<MasterFrameSync>? OnMasterFrameSync;
         public event EventHandler<AgentControllerMapping>? OnAgentControllerMapping;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.RegionRegion.DynamicSubscribe:
                 {
-                    this.HandleDynamicSubscribe(reader);
+                    OnDynamicSubscribe?.Invoke(this, (DynamicSubscribe)packet);
                     break;
                 }
                 case Messages.RegionRegion.DynamicPlayback:
                 {
-                    this.HandleDynamicPlayback(reader);
+                    OnDynamicPlayback?.Invoke(this, (DynamicPlayback)packet);
                     break;
                 }
                 case Messages.RegionRegion.MasterFrameSync:
                 {
-                    this.HandleMasterFrameSync(reader);
+                    OnMasterFrameSync?.Invoke(this, (MasterFrameSync)packet);
                     break;
                 }
                 case Messages.RegionRegion.AgentControllerMapping:
                 {
-                    this.HandleAgentControllerMapping(reader);
+                    OnAgentControllerMapping?.Invoke(this, (AgentControllerMapping)packet);
                     break;
                 }
                 default:
@@ -47,29 +47,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleDynamicSubscribe(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new DynamicSubscribe(reader);
-            OnDynamicSubscribe?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
-
-        void HandleDynamicPlayback(BinaryReader reader)
-        {
-            var packet = new DynamicPlayback(reader);
-            OnDynamicPlayback?.Invoke(this, packet);
-        }
-
-        void HandleMasterFrameSync(BinaryReader reader)
-        {
-            var packet = new MasterFrameSync(reader);
-            OnMasterFrameSync?.Invoke(this, packet);
-        }
-
-        void HandleAgentControllerMapping(BinaryReader reader)
-        {
-            var packet = new AgentControllerMapping(reader);
-            OnAgentControllerMapping?.Invoke(this, packet);
-        }
-
     }
 }

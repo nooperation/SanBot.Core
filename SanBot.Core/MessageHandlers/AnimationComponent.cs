@@ -27,93 +27,93 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<CharacterSetPosition>? OnCharacterSetPosition;
         public event EventHandler<PlayAnimation>? OnPlayAnimation;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.AnimationComponent.FloatVariable:
                 {
-                    this.HandleFloatVariable(reader);
+                    OnFloatVariable?.Invoke(this, (FloatVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.FloatNodeVariable:
                 {
-                    this.HandleFloatNodeVariable(reader);
+                    OnFloatNodeVariable?.Invoke(this, (FloatNodeVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.FloatRangeNodeVariable:
                 {
-                    this.HandleFloatRangeNodeVariable(reader);
+                    OnFloatRangeNodeVariable?.Invoke(this, (FloatRangeNodeVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.VectorVariable:
                 {
-                    this.HandleVectorVariable(reader);
+                    OnVectorVariable?.Invoke(this, (VectorVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.QuaternionVariable:
                 {
-                    this.HandleQuaternionVariable(reader);
+                    OnQuaternionVariable?.Invoke(this, (QuaternionVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.Int8Variable:
                 {
-                    this.HandleInt8Variable(reader);
+                    OnInt8Variable?.Invoke(this, (Int8Variable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.BoolVariable:
                 {
-                    this.HandleBoolVariable(reader);
+                    OnBoolVariable?.Invoke(this, (BoolVariable)packet);
                     break;
                 }
                 case Messages.AnimationComponent.CharacterTransform:
                 {
-                    this.HandleCharacterTransform(reader);
+                    OnCharacterTransform?.Invoke(this, (CharacterTransform)packet);
                     break;
                 }
                 case Messages.AnimationComponent.CharacterTransformPersistent:
                 {
-                    this.HandleCharacterTransformPersistent(reader);
+                    OnCharacterTransformPersistent?.Invoke(this, (CharacterTransformPersistent)packet);
                     break;
                 }
                 case Messages.AnimationComponent.CharacterAnimationDestroyed:
                 {
-                    this.HandleCharacterAnimationDestroyed(reader);
+                    OnCharacterAnimationDestroyed?.Invoke(this, (CharacterAnimationDestroyed)packet);
                     break;
                 }
                 case Messages.AnimationComponent.AnimationOverride:
                 {
-                    this.HandleAnimationOverride(reader);
+                    OnAnimationOverride?.Invoke(this, (AnimationOverride)packet);
                     break;
                 }
                 case Messages.AnimationComponent.BehaviorInternalState:
                 {
-                    this.HandleBehaviorInternalState(reader);
+                    OnBehaviorInternalState?.Invoke(this, (BehaviorInternalState)packet);
                     break;
                 }
                 case Messages.AnimationComponent.CharacterBehaviorInternalState:
                 {
-                    this.HandleCharacterBehaviorInternalState(reader);
+                    OnCharacterBehaviorInternalState?.Invoke(this, (CharacterBehaviorInternalState)packet);
                     break;
                 }
                 case Messages.AnimationComponent.BehaviorStateUpdate:
                 {
-                    this.HandleBehaviorStateUpdate(reader);
+                    OnBehaviorStateUpdate?.Invoke(this, (BehaviorStateUpdate)packet);
                     break;
                 }
                 case Messages.AnimationComponent.BehaviorInitializationData:
                 {
-                    this.HandleBehaviorInitializationData(reader);
+                    OnBehaviorInitializationData?.Invoke(this, (BehaviorInitializationData)packet);
                     break;
                 }
                 case Messages.AnimationComponent.CharacterSetPosition:
                 {
-                    this.HandleCharacterSetPosition(reader);
+                    OnCharacterSetPosition?.Invoke(this, (CharacterSetPosition)packet);
                     break;
                 }
                 case Messages.AnimationComponent.PlayAnimation:
                 {
-                    this.HandlePlayAnimation(reader);
+                    OnPlayAnimation?.Invoke(this, (PlayAnimation)packet);
                     break;
                 }
                 default:
@@ -125,109 +125,10 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleFloatVariable(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new FloatVariable(reader);
-            OnFloatVariable?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
-
-        void HandleFloatNodeVariable(BinaryReader reader)
-        {
-            var packet = new FloatNodeVariable(reader);
-            OnFloatNodeVariable?.Invoke(this, packet);
-        }
-
-        void HandleFloatRangeNodeVariable(BinaryReader reader)
-        {
-            var packet = new FloatRangeNodeVariable(reader);
-            OnFloatRangeNodeVariable?.Invoke(this, packet);
-        }
-
-        void HandleVectorVariable(BinaryReader reader)
-        {
-            var packet = new VectorVariable(reader);
-            OnVectorVariable?.Invoke(this, packet);
-        }
-
-        void HandleQuaternionVariable(BinaryReader reader)
-        {
-            var packet = new QuaternionVariable(reader);
-            OnQuaternionVariable?.Invoke(this, packet);
-        }
-
-        void HandleInt8Variable(BinaryReader reader)
-        {
-            var packet = new Int8Variable(reader);
-            OnInt8Variable?.Invoke(this, packet);
-        }
-
-        void HandleBoolVariable(BinaryReader reader)
-        {
-            var packet = new BoolVariable(reader);
-            OnBoolVariable?.Invoke(this, packet);
-        }
-
-        void HandleCharacterTransform(BinaryReader reader)
-        {
-            var packet = new CharacterTransform(reader);
-            OnCharacterTransform?.Invoke(this, packet);
-        }
-
-        void HandleCharacterTransformPersistent(BinaryReader reader)
-        {
-
-            var packet = new CharacterTransformPersistent(reader);
-            OnCharacterTransformPersistent?.Invoke(this, packet);
-        }
-
-        void HandleCharacterAnimationDestroyed(BinaryReader reader)
-        {
-            var packet = new CharacterAnimationDestroyed(reader);
-            OnCharacterAnimationDestroyed?.Invoke(this, packet);
-        }
-
-        void HandleAnimationOverride(BinaryReader reader)
-        {
-            var packet = new AnimationOverride(reader);
-            OnAnimationOverride?.Invoke(this, packet);
-        }
-
-        void HandleBehaviorInternalState(BinaryReader reader)
-        {
-            var packet = new BehaviorInternalState(reader);
-            OnBehaviorInternalState?.Invoke(this, packet);
-        }
-
-        void HandleCharacterBehaviorInternalState(BinaryReader reader)
-        {
-            var packet = new CharacterBehaviorInternalState(reader);
-            OnCharacterBehaviorInternalState?.Invoke(this, packet);
-        }
-
-        void HandleBehaviorStateUpdate(BinaryReader reader)
-        {
-            var packet = new BehaviorStateUpdate(reader);
-            OnBehaviorStateUpdate?.Invoke(this, packet);
-        }
-
-        void HandleBehaviorInitializationData(BinaryReader reader)
-        {
-            var packet = new BehaviorInitializationData(reader);
-            OnBehaviorInitializationData?.Invoke(this, packet);
-        }
-
-        void HandleCharacterSetPosition(BinaryReader reader)
-        {
-            var packet = new CharacterSetPosition(reader);
-            OnCharacterSetPosition?.Invoke(this, packet);
-        }
-
-        void HandlePlayAnimation(BinaryReader reader)
-        {
-            var packet = new PlayAnimation(reader);
-            OnPlayAnimation?.Invoke(this, packet);
-        }
-
     }
 
 }

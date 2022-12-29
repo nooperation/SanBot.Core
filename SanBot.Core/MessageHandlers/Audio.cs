@@ -20,58 +20,58 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<SetLoudness>? OnSetLoudness;
         public event EventHandler<SetPitch>? OnSetPitch;
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.Audio.LoadSound:
                 {
-                    this.HandleLoadSound(reader);
+                    OnLoadSound?.Invoke(this, (LoadSound)packet);
                     break;
                 }
                 case Messages.Audio.PlaySound:
                 {
-                    this.HandlePlaySound(reader);
+                    OnPlaySound?.Invoke(this, (PlaySound)packet);
                     break;
                 }
                 case Messages.Audio.PlayStream:
                 {
-                    this.HandlePlayStream(reader);
+                    OnPlayStream?.Invoke(this, (PlayStream)packet);
                     break;
                 }
                 case Messages.Audio.StopBroadcastingSound:
                 {
-                    this.HandleStopBroadcastingSound(reader);
+                    OnStopBroadcastingSound?.Invoke(this, (StopBroadcastingSound)packet);
                     break;
                 }
                 case Messages.Audio.SetAudioStream:
                 {
-                    this.HandleSetAudioStream(reader);
+                    OnSetAudioStream?.Invoke(this, (SetAudioStream)packet);
                     break;
                 }
                 case Messages.Audio.SetMediaSource:
                 {
-                    this.HandleSetMediaSource(reader);
+                    OnSetMediaSource?.Invoke(this, (SetMediaSource)packet);
                     break;
                 }
                 case Messages.Audio.PerformMediaAction:
                 {
-                    this.HandlePerformMediaAction(reader);
+                    OnPerformMediaAction?.Invoke(this, (PerformMediaAction)packet);
                     break;
                 }
                 case Messages.Audio.StopSound:
                 {
-                    this.HandleStopSound(reader);
+                    OnStopSound?.Invoke(this, (StopSound)packet);
                     break;
                 }
                 case Messages.Audio.SetLoudness:
                 {
-                    this.HandleSetLoudness(reader);
+                    OnSetLoudness?.Invoke(this, (SetLoudness)packet);
                     break;
                 }
                 case Messages.Audio.SetPitch:
                 {
-                    this.HandleSetPitch(reader);
+                    OnSetPitch?.Invoke(this, (SetPitch)packet);
                     break;
                 }
                 default:
@@ -141,6 +141,11 @@ namespace SanBot.Core.MessageHandlers
         {
             var packet = new SetPitch(reader);
             OnSetPitch?.Invoke(this, packet);
+        }
+
+        public bool OnMessage(uint messageId, BinaryReader reader)
+        {
+            throw new NotImplementedException();
         }
     }
 }

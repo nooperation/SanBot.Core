@@ -65,273 +65,273 @@ namespace SanBot.Core.MessageHandlers
         public event EventHandler<AddReaction>? OnAddReaction; // NEW: 2021-03-25
         public event EventHandler<RemoveReaction>? OnRemoveReaction; // NEW: 2021-03-25
 
-        public bool OnMessage(uint messageId, BinaryReader reader)
+        public bool OnMessage(IPacket packet)
         {
-            switch (messageId)
+            switch (packet.MessageId)
             {
                 case Messages.ClientRegion.UserLogin:
                 {
-                    this.HandleUserLogin(reader);
+                    OnUserLogin?.Invoke(this, (UserLogin)packet);
                     break;
                 }
                 case Messages.ClientRegion.UserLoginReply:
                 {
-                    this.HandleUserLoginReply(reader);
+                    OnUserLoginReply?.Invoke(this, (UserLoginReply)packet);
                     break;
                 }
                 case Messages.ClientRegion.AddUser:
                 {
-                    this.HandleAddUser(reader);
+                    OnAddUser?.Invoke(this, (AddUser)packet);
                     break;
                 }
                 case Messages.ClientRegion.RemoveUser:
                 {
-                    this.HandleRemoveUser(reader);
+                    OnRemoveUser?.Invoke(this, (RemoveUser)packet);
                     break;
                 }
                 case Messages.ClientRegion.RenameUser:
                 {
-                    this.HandleRenameUser(reader);
+                    OnRenameUser?.Invoke(this, (RenameUser)packet);
                     break;
                 }
                 case Messages.ClientRegion.ChatMessageToServer:
                 {
-                    this.HandleChatMessageToServer(reader);
+                    OnChatMessageToServer?.Invoke(this, (ChatMessageToServer)packet);
                     break;
                 }
                 case Messages.ClientRegion.ChatMessageToClient:
                 {
-                    this.HandleChatMessageToClient(reader);
+                    OnChatMessageToClient?.Invoke(this, (ChatMessageToClient)packet);
                     break;
                 }
                 case Messages.ClientRegion.VibrationPulseToClient:
                 {
-                    this.HandleVibrationPulseToClient(reader);
+                    OnVibrationPulseToClient?.Invoke(this, (VibrationPulseToClient)packet);
                     break;
                 }
                 case Messages.ClientRegion.SetAgentController:
                 {
-                    this.HandleSetAgentController(reader);
+                    OnSetAgentController?.Invoke(this, (SetAgentController)packet);
                     break;
                 }
                 case Messages.ClientRegion.TeleportTo:
                 {
-                    this.HandleTeleportTo(reader);
+                    OnTeleportTo?.Invoke(this, (TeleportTo)packet);
                     break;
                 }
                 case Messages.ClientRegion.TeleportToUri:
                 {
-                    this.HandleTeleportToUri(reader);
+                    OnTeleportToUri?.Invoke(this, (TeleportToUri)packet);
                     break;
                 }
                 case Messages.ClientRegion.TeleportToEditMode:
                 {
-                    this.HandleTeleportToEditMode(reader);
+                    OnTeleportToEditMode?.Invoke(this, (TeleportToEditMode)packet);
                     break;
                 }
                 case Messages.ClientRegion.DebugTimeChangeToServer:
                 {
-                    this.HandleDebugTimeChangeToServer(reader);
+                    OnDebugTimeChangeToServer?.Invoke(this, (DebugTimeChangeToServer)packet);
                     break;
                 }
                 case Messages.ClientRegion.DebugTimeChangeToClient:
                 {
-                    this.HandleDebugTimeChangeToClient(reader);
+                    OnDebugTimeChangeToClient?.Invoke(this, (DebugTimeChangeToClient)packet);
                     break;
                 }
                 case Messages.ClientRegion.VisualDebuggerCaptureToServer:
                 {
-                    this.HandleVisualDebuggerCaptureToServer(reader);
+                    OnVisualDebuggerCaptureToServer?.Invoke(this, (VisualDebuggerCaptureToServer)packet);
                     break;
                 }
                 case Messages.ClientRegion.VisualDebuggerCaptureToClient:
                 {
-                    this.HandleVisualDebuggerCaptureToClient(reader);
+                    OnVisualDebuggerCaptureToClient?.Invoke(this, (VisualDebuggerCaptureToClient)packet);
                     break;
                 }
                 case Messages.ClientRegion.ScriptModalDialog:
                 {
-                    this.HandleScriptModalDialog(reader);
+                    OnScriptModalDialog?.Invoke(this, (ScriptModalDialog)packet);
                     break;
                 }
                 case Messages.ClientRegion.ScriptModalDialogResponse:
                 {
-                    this.HandleScriptModalDialogResponse(reader);
+                    OnScriptModalDialogResponse?.Invoke(this, (ScriptModalDialogResponse)packet);
                     break;
                 }
                 case Messages.ClientRegion.TwitchEventSubscription:
                 {
-                    this.HandleTwitchEventSubscription(reader);
+                    OnTwitchEventSubscription?.Invoke(this, (TwitchEventSubscription)packet);
                     break;
                 }
                 case Messages.ClientRegion.TwitchEvent:
                 {
-                    this.HandleTwitchEvent(reader);
+                    OnTwitchEvent?.Invoke(this, (TwitchEvent)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientStaticReady:
                 {
-                    this.HandleClientStaticReady(reader);
+                    OnClientStaticReady?.Invoke(this, (ClientStaticReady)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientDynamicReady:
                 {
-                    this.HandleClientDynamicReady(reader);
+                    OnClientDynamicReady?.Invoke(this, (ClientDynamicReady)packet);
                     break;
                 }
                 case Messages.ClientRegion.InitialChunkSubscribed:
                 {
-                    this.HandleInitialChunkSubscribed(reader);
+                    OnInitialChunkSubscribed?.Invoke(this, (InitialChunkSubscribed)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientRegionCommandMessage:
                 {
-                    this.HandleClientRegionCommandMessage(reader);
+                    OnClientRegionCommandMessage?.Invoke(this, (ClientRegionCommandMessage)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientKickNotification:
                 {
-                    this.HandleClientKickNotification(reader);
+                    OnClientKickNotification?.Invoke(this, (ClientKickNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientSmiteNotification:
                 {
-                    this.HandleClientSmiteNotification(reader);
+                    OnClientSmiteNotification?.Invoke(this, (ClientSmiteNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientMuteNotification:
                 {
-                    this.HandleClientMuteNotification(reader);
+                    OnClientMuteNotification?.Invoke(this, (ClientMuteNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientVoiceBroadcastStartNotification:
                 {
-                    this.HandleClientVoiceBroadcastStartNotification(reader);
+                    OnClientVoiceBroadcastStartNotification?.Invoke(this, (ClientVoiceBroadcastStartNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientVoiceBroadcastStopNotification:
                 {
-                    this.HandleClientVoiceBroadcastStopNotification(reader);
+                    OnClientVoiceBroadcastStopNotification?.Invoke(this, (ClientVoiceBroadcastStopNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientRuntimeInventoryUpdatedNotification:
                 {
-                    this.HandleClientRuntimeInventoryUpdatedNotification(reader);
+                    OnClientRuntimeInventoryUpdatedNotification?.Invoke(this, (ClientRuntimeInventoryUpdatedNotification)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientSetRegionBroadcasted:
                 {
-                    this.HandleClientSetRegionBroadcasted(reader);
+                    OnClientSetRegionBroadcasted?.Invoke(this, (ClientSetRegionBroadcasted)packet);
                     break;
                 }
                 case Messages.ClientRegion.SubscribeCommand:
                 {
-                    this.HandleSubscribeCommand(reader);
+                    OnSubscribeCommand?.Invoke(this, (SubscribeCommand)packet);
                     break;
                 }
                 case Messages.ClientRegion.UnsubscribeCommand:
                 {
-                    this.HandleUnsubscribeCommand(reader);
+                    OnUnsubscribeCommand?.Invoke(this, (UnsubscribeCommand)packet);
                     break;
                 }
                 case Messages.ClientRegion.ClientCommand:
                 {
-                    this.HandleClientCommand(reader);
+                    OnClientCommand?.Invoke(this, (ClientCommand)packet);
                     break;
                 }
                 case Messages.ClientRegion.RequestDropPortal:
                 {
-                    this.HandleRequestDropPortal(reader);
+                    OnRequestDropPortal?.Invoke(this, (RequestDropPortal)packet);
                     break;
                 }
                 case Messages.ClientRegion.OpenStoreListing:
                 {
-                    this.HandleOpenStoreListing(reader);
+                    OnOpenStoreListing?.Invoke(this, (OpenStoreListing)packet);
                     break;
                 }
                 case Messages.ClientRegion.OpenUserStore:
                 {
-                    this.HandleOpenUserStore(reader);
+                    OnOpenUserStore?.Invoke(this, (OpenUserStore)packet);
                     break;
                 }
                 case Messages.ClientRegion.OpenQuestCharacterDialog:
                 {
-                    this.HandleOpenQuestCharacterDialog(reader);
+                    OnOpenQuestCharacterDialog?.Invoke(this, (OpenQuestCharacterDialog)packet);
                     break;
                 }
                 case Messages.ClientRegion.UIScriptableBarStart:
                 {
-                    this.HandleUIScriptableBarStart(reader);
+                    OnUIScriptableBarStart?.Invoke(this, (UIScriptableBarStart)packet);
                     break;
                 }
                 case Messages.ClientRegion.UIScriptableBarStopped:
                 {
-                    this.HandleUIScriptableBarStopped(reader);
+                    OnUIScriptableBarStopped?.Invoke(this, (UIScriptableBarStopped)packet);
                     break;
                 }
                 case Messages.ClientRegion.UIScriptableBarCancel:
                 {
-                    this.HandleUIScriptableBarCancel(reader);
+                    OnUIScriptableBarCancel?.Invoke(this, (UIScriptableBarCancel)packet);
                     break;
                 }
                 case Messages.ClientRegion.UIHintTextUpdate:
                 {
-                    this.HandleUIHintTextUpdate(reader);
+                    OnUIHintTextUpdate?.Invoke(this, (UIHintTextUpdate)packet);
                     break;
                 }
                 case Messages.ClientRegion.QuestOfferResponse:
                 {
-                    this.HandleQuestOfferResponse(reader);
+                    OnQuestOfferResponse?.Invoke(this, (QuestOfferResponse)packet);
                     break;
                 }
                 case Messages.ClientRegion.QuestCompleted:
                 {
-                    this.HandleQuestCompleted(reader);
+                    OnQuestCompleted?.Invoke(this, (QuestCompleted)packet);
                     break;
                 }
                 case Messages.ClientRegion.QuestRemoved:
                 {
-                    this.HandleQuestRemoved(reader);
+                    OnQuestRemoved?.Invoke(this, (QuestRemoved)packet);
                     break;
                 }
                 case Messages.ClientRegion.ShowWorldDetail:
                 {
-                    this.HandleShowWorldDetail(reader);
+                    OnShowWorldDetail?.Invoke(this, (ShowWorldDetail)packet);
                     break;
                 }
                 case Messages.ClientRegion.ShowTutorialHint:
                 {
-                    this.HandleShowTutorialHint(reader);
+                    OnShowTutorialHint?.Invoke(this, (ShowTutorialHint)packet);
                     break;
                 }
                 case Messages.ClientRegion.TutorialHintsSetEnabled:
                 {
-                    this.HandleTutorialHintsSetEnabled(reader);
+                    OnTutorialHintsSetEnabled?.Invoke(this, (TutorialHintsSetEnabled)packet);
                     break;
                 }
                 case Messages.ClientRegion.ReactionDefinition:
                 {
-                    this.HandleReactionDefinition(reader);
+                    OnReactionDefinition?.Invoke(this, (ReactionDefinition)packet);
                     break;
                 }
                 case Messages.ClientRegion.SystemReactionDefinition:
                 {
-                    this.HandleSystemReactionDefinition(reader);
+                    OnSystemReactionDefinition?.Invoke(this, (SystemReactionDefinition)packet);
                     break;
                 }
                 case Messages.ClientRegion.UpdateReactions:
                 {
-                    this.HandleUpdateReactions(reader);
+                    OnUpdateReactions?.Invoke(this, (UpdateReactions)packet);
                     break;
                 }
                 case Messages.ClientRegion.AddReaction:
                 {
-                    this.HandleAddReaction(reader);
+                    OnAddReaction?.Invoke(this, (AddReaction)packet);
                     break;
                 }
                 case Messages.ClientRegion.RemoveReaction:
                 {
-                    this.HandleRemoveReaction(reader);
+                    OnRemoveReaction?.Invoke(this, (RemoveReaction)packet);
                     break;
                 }
                 default:
@@ -343,361 +343,9 @@ namespace SanBot.Core.MessageHandlers
             return true;
         }
 
-        void HandleUserLogin(BinaryReader reader)
+        public bool OnMessage(uint messageId, BinaryReader reader)
         {
-            var packet = new UserLogin(reader);
-            OnUserLogin?.Invoke(this, packet);
-        }
-
-        private static string Clusterbutt(string text)
-        {
-            text = text.Replace("-", "");
-            var match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
-            if (match.Success)
-            {
-                var sb = new StringBuilder();
-                sb.Append(match.Groups[1 + 7]);
-                sb.Append(match.Groups[1 + 6]);
-                sb.Append(match.Groups[1 + 5]);
-                sb.Append(match.Groups[1 + 4]);
-                sb.Append(match.Groups[1 + 3]);
-                sb.Append(match.Groups[1 + 2]);
-                sb.Append(match.Groups[1 + 1]);
-                sb.Append(match.Groups[1 + 0]);
-                sb.Append(match.Groups[1 + 8 + 7]);
-                sb.Append(match.Groups[1 + 8 + 6]);
-                sb.Append(match.Groups[1 + 8 + 5]);
-                sb.Append(match.Groups[1 + 8 + 4]);
-                sb.Append(match.Groups[1 + 8 + 3]);
-                sb.Append(match.Groups[1 + 8 + 2]);
-                sb.Append(match.Groups[1 + 8 + 1]);
-                sb.Append(match.Groups[1 + 8 + 0]);
-
-                return sb.ToString();
-            }
-            else
-            {
-                return "ERROR";
-            }
-        }
-
-        public void Output(object obj)
-        {
-            Console.WriteLine(obj);
-        }
-
-        void HandleUserLoginReply(BinaryReader reader)
-        {
-            var packet = new UserLoginReply(reader);
-            OnUserLoginReply?.Invoke(this, packet);
-        }
-
-        void HandleAddUser(BinaryReader reader)
-        {
-            var packet = new AddUser(reader);
-            OnAddUser?.Invoke(this, packet);
-        }
-
-        void HandleRemoveUser(BinaryReader reader)
-        {
-            var packet = new RemoveUser(reader);
-            OnRemoveUser?.Invoke(this, packet);
-        }
-
-        void HandleRenameUser(BinaryReader reader)
-        {
-            var packet = new RenameUser(reader);
-            OnRenameUser?.Invoke(this, packet);
-        }
-
-        void HandleChatMessageToServer(BinaryReader reader)
-        {
-            var packet = new ChatMessageToServer(reader);
-            OnChatMessageToServer?.Invoke(this, packet);
-        }
-
-        void HandleChatMessageToClient(BinaryReader reader)
-        {
-            var packet = new ChatMessageToClient(reader);
-            OnChatMessageToClient?.Invoke(this, packet);
-        }
-
-        void HandleVibrationPulseToClient(BinaryReader reader)
-        {
-            var packet = new VibrationPulseToClient(reader);
-            OnVibrationPulseToClient?.Invoke(this, packet);
-        }
-
-        void HandleSetAgentController(BinaryReader reader)
-        {
-            var packet = new SetAgentController(reader);
-            OnSetAgentController?.Invoke(this, packet);
-        }
-
-        void HandleTeleportTo(BinaryReader reader)
-        {
-            var packet = new TeleportTo(reader);
-            OnTeleportTo?.Invoke(this, packet);
-        }
-
-        void HandleTeleportToUri(BinaryReader reader)
-        {
-            var packet = new TeleportToUri(reader);
-            OnTeleportToUri?.Invoke(this, packet);
-        }
-
-        void HandleTeleportToEditMode(BinaryReader reader)
-        {
-            var packet = new TeleportToEditMode(reader);
-            OnTeleportToEditMode?.Invoke(this, packet);
-        }
-
-        void HandleDebugTimeChangeToServer(BinaryReader reader)
-        {
-            var packet = new DebugTimeChangeToServer(reader);
-            OnDebugTimeChangeToServer?.Invoke(this, packet);
-        }
-
-        void HandleDebugTimeChangeToClient(BinaryReader reader)
-        {
-            var packet = new DebugTimeChangeToClient(reader);
-            OnDebugTimeChangeToClient?.Invoke(this, packet);
-        }
-
-        void HandleVisualDebuggerCaptureToServer(BinaryReader reader)
-        {
-            var packet = new VisualDebuggerCaptureToServer(reader);
-            OnVisualDebuggerCaptureToServer?.Invoke(this, packet);
-        }
-
-        void HandleVisualDebuggerCaptureToClient(BinaryReader reader)
-        {
-            var packet = new VisualDebuggerCaptureToClient(reader);
-            OnVisualDebuggerCaptureToClient?.Invoke(this, packet);
-        }
-
-        void HandleScriptModalDialog(BinaryReader reader)
-        {
-            var packet = new ScriptModalDialog(reader);
-            OnScriptModalDialog?.Invoke(this, packet);
-        }
-
-        void HandleScriptModalDialogResponse(BinaryReader reader)
-        {
-            var packet = new ScriptModalDialogResponse(reader);
-            OnScriptModalDialogResponse?.Invoke(this, packet);
-        }
-
-        void HandleTwitchEventSubscription(BinaryReader reader)
-        {
-            var packet = new TwitchEventSubscription(reader);
-            OnTwitchEventSubscription?.Invoke(this, packet);
-        }
-
-        void HandleTwitchEvent(BinaryReader reader)
-        {
-            var packet = new TwitchEvent(reader);
-            OnTwitchEvent?.Invoke(this, packet);
-        }
-
-        void HandleClientStaticReady(BinaryReader reader)
-        {
-            var packet = new ClientStaticReady(reader);
-            OnClientStaticReady?.Invoke(this, packet);
-        }
-
-        void HandleClientDynamicReady(BinaryReader reader)
-        {
-            var packet = new ClientDynamicReady(reader);
-            OnClientDynamicReady?.Invoke(this, packet);
-        }
-
-        void HandleInitialChunkSubscribed(BinaryReader reader)
-        {
-            var packet = new InitialChunkSubscribed(reader);
-            OnInitialChunkSubscribed?.Invoke(this, packet);
-        }
-
-        // whenever a user does %%command we send this and the voicemoderationcommand packets
-        void HandleClientRegionCommandMessage(BinaryReader reader)
-        {
-            var packet = new ClientRegionCommandMessage(reader);
-            OnClientRegionCommandMessage?.Invoke(this, packet);
-        }
-
-        void HandleClientKickNotification(BinaryReader reader)
-        {
-            var packet = new ClientKickNotification(reader);
-            OnClientKickNotification?.Invoke(this, packet);
-        }
-
-        void HandleClientSmiteNotification(BinaryReader reader)
-        {
-            var packet = new ClientSmiteNotification(reader);
-            OnClientSmiteNotification?.Invoke(this, packet);
-        }
-
-        void HandleClientMuteNotification(BinaryReader reader)
-        {
-            var packet = new ClientMuteNotification(reader);
-            OnClientMuteNotification?.Invoke(this, packet);
-        }
-
-        void HandleClientVoiceBroadcastStartNotification(BinaryReader reader)
-        {
-            var packet = new ClientVoiceBroadcastStartNotification(reader);
-            OnClientVoiceBroadcastStartNotification?.Invoke(this, packet);
-        }
-
-        void HandleClientVoiceBroadcastStopNotification(BinaryReader reader)
-        {
-            var packet = new ClientVoiceBroadcastStopNotification(reader);
-            OnClientVoiceBroadcastStopNotification?.Invoke(this, packet);
-        }
-
-        // %%backpack-on  %%backpack-off  %%backpack-clear
-        void HandleClientRuntimeInventoryUpdatedNotification(BinaryReader reader)
-        {
-            var packet = new ClientRuntimeInventoryUpdatedNotification(reader);
-            OnClientRuntimeInventoryUpdatedNotification?.Invoke(this, packet);
-        }
-
-        void HandleClientSetRegionBroadcasted(BinaryReader reader)
-        {
-            var packet = new ClientSetRegionBroadcasted(reader);
-            OnClientSetRegionBroadcasted?.Invoke(this, packet);
-        }
-
-        void HandleSubscribeCommand(BinaryReader reader)
-        {
-            var packet = new SubscribeCommand(reader);
-            OnSubscribeCommand?.Invoke(this, packet);
-        }
-
-        void HandleUnsubscribeCommand(BinaryReader reader)
-        {
-            var packet = new UnsubscribeCommand(reader);
-            OnUnsubscribeCommand?.Invoke(this, packet);
-        }
-
-        void HandleClientCommand(BinaryReader reader)
-        {
-            var packet = new ClientCommand(reader);
-            OnClientCommand?.Invoke(this, packet);
-        }
-
-        void HandleRequestDropPortal(BinaryReader reader)
-        {
-            var packet = new RequestDropPortal(reader);
-            OnRequestDropPortal?.Invoke(this, packet);
-        }
-
-        void HandleOpenStoreListing(BinaryReader reader)
-        {
-            var packet = new OpenStoreListing(reader);
-            OnOpenStoreListing?.Invoke(this, packet);
-        }
-
-        void HandleOpenUserStore(BinaryReader reader)
-        {
-            var packet = new OpenUserStore(reader);
-            OnOpenUserStore?.Invoke(this, packet);
-        }
-
-        void HandleOpenQuestCharacterDialog(BinaryReader reader)
-        {
-            var packet = new OpenQuestCharacterDialog(reader);
-            OnOpenQuestCharacterDialog?.Invoke(this, packet);
-        }
-
-        void HandleUIScriptableBarStart(BinaryReader reader)
-        {
-            var packet = new UIScriptableBarStart(reader);
-            OnUIScriptableBarStart?.Invoke(this, packet);
-        }
-
-        void HandleUIScriptableBarStopped(BinaryReader reader)
-        {
-            var packet = new UIScriptableBarStopped(reader);
-            OnUIScriptableBarStopped?.Invoke(this, packet);
-        }
-
-        void HandleUIScriptableBarCancel(BinaryReader reader)
-        {
-            var packet = new UIScriptableBarCancel(reader);
-            OnUIScriptableBarCancel?.Invoke(this, packet);
-        }
-
-        void HandleUIHintTextUpdate(BinaryReader reader)
-        {
-            var packet = new UIHintTextUpdate(reader);
-            OnUIHintTextUpdate?.Invoke(this, packet);
-        }
-
-        void HandleQuestOfferResponse(BinaryReader reader)
-        {
-            var packet = new QuestOfferResponse(reader);
-            OnQuestOfferResponse?.Invoke(this, packet);
-        }
-
-        void HandleQuestCompleted(BinaryReader reader)
-        {
-            var packet = new QuestCompleted(reader);
-            OnQuestCompleted?.Invoke(this, packet);
-        }
-
-        void HandleQuestRemoved(BinaryReader reader)
-        {
-            var packet = new QuestRemoved(reader);
-            OnQuestRemoved?.Invoke(this, packet);
-        }
-
-        void HandleShowWorldDetail(BinaryReader reader)
-        {
-            var packet = new ShowWorldDetail(reader);
-            OnShowWorldDetail?.Invoke(this, packet);
-        }
-
-        void HandleShowTutorialHint(BinaryReader reader)
-        {
-            var packet = new ShowTutorialHint(reader);
-            OnShowTutorialHint?.Invoke(this, packet);
-        }
-
-        void HandleTutorialHintsSetEnabled(BinaryReader reader)
-        {
-            var packet = new TutorialHintsSetEnabled(reader);
-            OnTutorialHintsSetEnabled?.Invoke(this, packet);
-        }
-
-        private void HandleReactionDefinition(BinaryReader reader)
-        {
-            var packet = new ReactionDefinition(reader);
-            OnReactionDefinition?.Invoke(this, packet);
-        }
-
-        private void HandleSystemReactionDefinition(BinaryReader reader)
-        {
-            var packet = new SystemReactionDefinition(reader);
-            OnSystemReactionDefinition?.Invoke(this, packet);
-        }
-
-        private void HandleUpdateReactions(BinaryReader reader)
-        {
-            var packet = new UpdateReactions(reader);
-            OnUpdateReactions?.Invoke(this, packet);
-        }
-
-        private void HandleAddReaction(BinaryReader reader)
-        {
-            var packet = new AddReaction(reader);
-            OnAddReaction?.Invoke(this, packet);
-        }
-
-        private void HandleRemoveReaction(BinaryReader reader)
-        {
-            var packet = new RemoveReaction(reader);
-            OnRemoveReaction?.Invoke(this, packet);
+            throw new NotImplementedException();
         }
     }
 }

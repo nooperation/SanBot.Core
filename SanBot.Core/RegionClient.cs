@@ -37,6 +37,7 @@ namespace SanBot.Core
         public WorldState WorldStateMessages { get; set; }
 
         private NetworkWriter _networkWriter;
+        private NetworkReader _networkReader;
 
         public RegionClient(Driver driver)
         {
@@ -69,6 +70,9 @@ namespace SanBot.Core
 
             _networkWriter = new NetworkWriter(accountConductor, accountConductorLock);
             _networkWriter.Start();
+
+            _networkReader = new NetworkReader(accountConductor, accountConductorLock);
+            _networkReader.Start();
         }
 
         public void Start(string hostname, int port, uint secret)
@@ -95,27 +99,31 @@ namespace SanBot.Core
             }
         }
 
-        byte[] PollBuffer = new byte[16384];
         public bool Poll()
         {
-            if (accountConductor.Available == 0)
+            var packets = _networkReader.GetAvailablePackets();
+            if(packets == null)
             {
                 return false;
             }
 
-            var instream = accountConductor.GetStream();
-
-            while (accountConductor.Available > 0)
+            foreach (var packet in packets)
             {
-                var numBytesRead = instream.Read(PollBuffer, 0, PollBuffer.Length);
-                PacketBuffer.AppendBytes(PollBuffer, numBytesRead);
-            }
+                if (packet.MessageId == 0)
+                {
+                    HandleVersionPacket((VersionPacket)packet);
+                    continue;
+                }
 
-            foreach (var packet in PacketBuffer.Packets)
-            {
-                HandlePacket(packet);
+                foreach (var item in MessageHandlers)
+                {
+                    if(item.OnMessage(packet))
+                    {
+                        break;
+                    }
+                }
             }
-            PacketBuffer.Packets.Clear();
+            _networkWriter.SendQueuedPackets();
 
             return true;
         }
@@ -125,45 +133,14 @@ namespace SanBot.Core
             _networkWriter.SendPacket(packet);
         }
 
-        private void HandlePacket(byte[] packet)
+        public void EnqueuePacket(IPacket packet)
         {
-            using (BinaryReader br = new BinaryReader(new MemoryStream(packet)))
-            {
-                var id = br.ReadUInt32();
-
-                switch (id)
-                {
-                    case 0:
-                        HandleVersionPacket(br);
-                        break;
-                    default:
-                    {
-                        bool handledMessage = false;
-                        foreach (var item in MessageHandlers)
-                        {
-                            if (item.OnMessage(id, br))
-                            {
-                                handledMessage = true;
-                                break;
-                            }
-                        }
-
-                        if (handledMessage == false)
-                        {
-                            Output("Unhandled Message");
-                        }
-                    }
-                    break;
-                }
-            }
+            _networkWriter.EnqueuePacket(packet);
         }
 
-        private void HandleVersionPacket(BinaryReader br)
+        private void HandleVersionPacket(VersionPacket packet)
         {
-            Output("Got version packet from server");
-            var versionPacket = new VersionPacket(br);
-
-            Output("Sending login packet...");
+            Output("Got version packet from server, sending login packet");
             var loginPacket = new SanProtocol.ClientRegion.UserLogin(
                 Secret
             );
@@ -174,5 +151,6 @@ namespace SanBot.Core
         {
             OnOutput?.Invoke(this, message);
         }
+
     }
 }

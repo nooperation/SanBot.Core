@@ -78,6 +78,26 @@ namespace SanBot.Core
             }
         }
 
+        public void EnqueuePacket(IPacket packet)
+        {
+            lock (_conditionVariable)
+            {
+                _packetQueueFromOtherThread.Add(packet);
+
+                if (!_dataIsAvailable)
+                {
+                    _dataIsAvailable = true;
+                }
+            }
+        }
+        public void SendQueuedPackets()
+        {
+            lock (_conditionVariable)
+            {
+                Monitor.Pulse(_conditionVariable);
+            }
+        }
+
         public void SendPacket(IPacket packet)
         {
             lock (_conditionVariable)
@@ -92,6 +112,7 @@ namespace SanBot.Core
             }
         }
 
+        byte[] _pollBytes = new byte[65535];
         public void Poll()
         {
             List<IPacket> packetsToSend = new List<IPacket>();
@@ -107,35 +128,44 @@ namespace SanBot.Core
                 return;
             }
 
+            long pollBytesOffset = 0;
+
             if (packetsToSend.Count > 0)
             {
-                using (var ms = new MemoryStream())
+                foreach (var item in packetsToSend)
                 {
-                    using (var bw2 = new BinaryWriter(ms))
-                    {
-                        foreach (var item in packetsToSend)
-                        {
-                            var packetBytes = item.GetBytes();
-                            bw2.Write(packetBytes.Length);
-                            bw2.Write(packetBytes);
-                        }
+                    var packetBytes = item.GetBytes();
 
-                        SendRaw(ms.ToArray());
+                    if (_pollBytes.Length < pollBytesOffset + packetBytes.Length)
+                    {
+                        Console.WriteLine($"*** Expanding _pollBytes by {65535 + packetBytes.Length * 2} ***");
+                        var newPollbytes = new byte[_pollBytes.Length + 65535 + packetBytes.Length * 2];
+                        Array.Copy(_pollBytes, newPollbytes, _pollBytes.Length);
+                        _pollBytes = newPollbytes;
                     }
+
+                    _pollBytes[pollBytesOffset++] = (byte)((packetBytes.Length & 0x000000ff) >> 0);
+                    _pollBytes[pollBytesOffset++] = (byte)((packetBytes.Length & 0x0000ff00) >> 8);
+                    _pollBytes[pollBytesOffset++] = (byte)((packetBytes.Length & 0x00ff0000) >> 16);
+                    _pollBytes[pollBytesOffset++] = (byte)((packetBytes.Length & 0xff000000) >> 24);
+                    packetBytes.CopyTo(_pollBytes, pollBytesOffset);
+                    pollBytesOffset += packetBytes.Length;
                 }
+
+                SendRaw(_pollBytes, 0, pollBytesOffset);
             }
         }
 
-        public void SendRaw(byte[] toSend)
+        public void SendRaw(byte[] toSend, long toSendOffset, long toSendLength)
         {
             lock (_accountConductorLock)
             {
                 var outStream = _accountConductor.GetStream();
-                var bytesRemaining = toSend.Length;
+                var bytesRemaining = toSendLength;
                 var bytesOffset = 0;
                 while (bytesRemaining > 0)
                 {
-                    var bytesToSend = bytesRemaining > 4096 ? 4096 : bytesRemaining;
+                    var bytesToSend = bytesRemaining > 4096 ? 4096 : (int)bytesRemaining;
 
                     outStream.Write(toSend, bytesOffset, bytesToSend);
 

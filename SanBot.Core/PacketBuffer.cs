@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SanProtocol;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
@@ -9,6 +10,8 @@ namespace SanBot.Core
     {
         public byte[] RecvBuffer = new byte[0];
         public List<byte[]> Packets { get; set; } = new List<byte[]>();
+        public Action<List<IPacket>> OnProcessPackets { get; internal set; }
+        public Func<byte[], IPacket> DecodePacket { get; set; }
 
         public void AppendBytes(byte[] bytes)
         {
@@ -42,11 +45,11 @@ namespace SanBot.Core
                             break;
                         }
 
-                        var packet = br.ReadBytes(packetLength);
-                        Packets.Add(packet);
+                        var packetBytes = br.ReadBytes(packetLength);
+                        Packets.Add(packetBytes);
                         totalBytesConsumed += packetLength + 4;
 
-                        var signature = BitConverter.ToUInt32(packet);
+                        //var signature = BitConverter.ToUInt32(packetBytes);
                     }
 
                     if(totalBytesConsumed > 0)
@@ -57,6 +60,15 @@ namespace SanBot.Core
                     }
                 }
             }
+        }
+
+        public void ProcessPacketQueue()
+        {
+            var decodedPackets = Packets
+                .Select(n => DecodePacket(n)).ToList();
+
+            OnProcessPackets(decodedPackets);
+            Packets.Clear();
         }
     }
 }
