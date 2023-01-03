@@ -674,7 +674,7 @@ namespace SanBot.Core
             OnOutput?.Invoke(this, str);
         }
 
-        public string GetSanbotConfigPath()
+        public static string GetSanbotConfigPath()
         {
             return Path.Join(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -693,7 +693,7 @@ namespace SanBot.Core
             public string key1 { get; set; } = default!;
             public string region { get; set; } = default!;
         }
-        private AzureConfigPayload? AzureConfig { get; set; }
+        public AzureConfigPayload? AzureConfig { get; set; }
         private GoogleConfigPayload? GoogleConfig { get; set; }
 
         public async Task StartAsync(ConfigFile config)
@@ -701,47 +701,22 @@ namespace SanBot.Core
             AzureConfig = null;
             GoogleConfig = null;
 
-            if(false)
+            try
             {
-                try
+                var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
+                var configFileContents = File.ReadAllText(azureConfigPath);
+                var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
+                if (result == null || result.key1.Length == 0 || result.region.Length == 0)
                 {
-                    var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
-                    var configFileContents = File.ReadAllText(azureConfigPath);
-                    var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
-                    if (result == null || result.key1.Length == 0 || result.region.Length == 0)
-                    {
-                        throw new Exception("Invalid azure config");
-                    }
+                    throw new Exception("Invalid azure config");
+                }
 
-                    AzureConfig = result;
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Missing or invalid azure config", ex);
-                }
+                AzureConfig = result;
             }
-            if(false)
+            catch (Exception ex)
             {
-                try
-                {
-                    var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
-                    var configFileContents = File.ReadAllText(azureConfigPath);
-                    var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
-                    if (result == null || result.key1.Length == 0 || result.region.Length == 0)
-                    {
-                        throw new Exception("Invalid azure config");
-                    }
-
-                    AzureConfig = result;
-                }
-                catch (Exception ex)
-                {
-                    throw new Exception("Missing or invalid azure config", ex);
-                }
+                throw new Exception("Missing or invalid azure config", ex);
             }
-
-
-
 
             await WebApi.Login(config.Username, config.Password);
 
@@ -776,7 +751,6 @@ namespace SanBot.Core
             Output("Posting to account connector...");
             var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
-
 
 
          //   WebApi.SetAvatarIdAsync(MyPersonaDetails.Id, "43668ab727c00fd7d33a5af1085493dd").Wait();
@@ -814,7 +788,6 @@ namespace SanBot.Core
                 CurrentInstanceId
             );
         }
-
 
         public uint? MySessionId { get; set; }
         private void ClientRegionMessages_OnUserLoginReply(object? sender, SanProtocol.ClientRegion.UserLoginReply e)
