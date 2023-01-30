@@ -17,6 +17,9 @@ namespace SanBot.Core
         public DateTime LastTimeSomeoneSpoke { get; set; }
         public bool TryToAvoidInterruptingPeople { get; set; }
 
+        private volatile bool _isSpeaking = false;
+        public bool IsSpeaking => _isSpeaking;
+
         public VoiceAudioThread(Action<byte[]> callback, bool tryToAvoidInterruptingPeople)
         {
             Callback = callback;
@@ -56,6 +59,7 @@ namespace SanBot.Core
                 if (AudioDataQueue.TryDequeue(out List<byte[]> rawAudioPackets))
                 {
                     Console.WriteLine($"VoiceAudioThread: Audio payload found. Sending it... rawAudioPackets={rawAudioPackets.Count}");
+                    _isSpeaking = true;
 
                     for (int i = 0; i < rawAudioPackets.Count; i++)
                     {
@@ -85,6 +89,8 @@ namespace SanBot.Core
                         }
                         previousTickCount = DateTimeOffset.Now.Ticks;
                     }
+
+                    _isSpeaking = false;
                 }
                 else
                 {
