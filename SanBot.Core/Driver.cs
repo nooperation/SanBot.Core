@@ -75,10 +75,12 @@ namespace SanBot.Core
 
         public PersonaData? MyPersonaData { get; set; }
         public VoiceAudioThread AudioThread { get; set; }
+        public bool IsSpeaking => AudioThread.IsSpeaking;
 
         public bool TryToAvoidInterruptingPeople { get; set; } = false;
         public bool UseVoice { get; set; } = true;
         public bool AutomaticallySendClientReady { get; set; } = true;
+        public bool IgnoreRegionServer { get; set; }
         public RegionDetails? RegionToJoin { get; set; } = null;
 
         public Driver()
@@ -241,6 +243,12 @@ namespace SanBot.Core
 
         private void ClientRegionMessages_OnSetAgentController(object? sender, SanProtocol.ClientRegion.SetAgentController e)
         {
+            if(HaveIBeenCreatedYet)
+            {
+                Output("Got a secondary OnSetAgentController? this is new...");
+                return;
+            }
+
             var myPersonaData = this.PersonasBySessionId
                 .Where(n => n.Value.SessionId == MySessionId)
                 .Select(n => n.Value)
@@ -691,6 +699,7 @@ namespace SanBot.Core
         public class AzureConfigPayload
         {
             public string key1 { get; set; } = default!;
+            public string keyTranslator { get; set; } = default!;
             public string region { get; set; } = default!;
         }
         public AzureConfigPayload? AzureConfig { get; set; }
@@ -773,12 +782,15 @@ namespace SanBot.Core
                 regionAddress
             ));
 
-            Output("Starting region client");
-            RegionClient.Start(
-                RegionAccountConnectorResponse.RegionResponse.Host,
-                RegionAccountConnectorResponse.RegionResponse.UdpPort,
-                RegionAccountConnectorResponse.RegionResponse.Secret
-            );
+            if(!IgnoreRegionServer)
+            {
+                Output("Starting region client");
+                RegionClient.Start(
+                    RegionAccountConnectorResponse.RegionResponse.Host,
+                    RegionAccountConnectorResponse.RegionResponse.UdpPort,
+                    RegionAccountConnectorResponse.RegionResponse.Secret
+                );
+            }
 
             Output("Starting voice client");
             VoiceClient.Start(

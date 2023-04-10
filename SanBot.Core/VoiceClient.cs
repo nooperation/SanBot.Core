@@ -21,7 +21,8 @@ namespace SanBot.Core
         public int Port { get; set; }
         public uint Secret { get; set; }
         public SanUUID InstanceId { get; set; } = SanUUID.Zero;
-        
+        public bool GotVersionPacket { get; set; }
+
         private List<IMessageHandler> MessageHandlers { get; }
         public PacketBuffer PacketBuffer { get; set; } = new PacketBuffer();
 
@@ -165,6 +166,8 @@ namespace SanBot.Core
                 0
             );
             SendPacket(loginPacket);
+
+            GotVersionPacket = true;
         }
 
         private void Output(string message)
