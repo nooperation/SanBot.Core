@@ -21,7 +21,7 @@ namespace SanBot.Core
         private bool _dataIsAvailable = false;
         private volatile bool _isRunning = false;
 
-        Thread? writerThread;
+        private Thread? _writerThread;
 
         public NetworkWriter(TcpClient accountConductor, object accountConductorLock)
         {
@@ -39,7 +39,7 @@ namespace SanBot.Core
             }
 
             _isRunning = true;
-            writerThread = new Thread(() =>
+            _writerThread = new Thread(() =>
             {
                 while (_isRunning)
                 {
@@ -54,7 +54,7 @@ namespace SanBot.Core
                     }
                 }
             });
-            writerThread.Start();
+            _writerThread.Start();
         }
 
         public void Stop()
@@ -72,9 +72,9 @@ namespace SanBot.Core
                 Monitor.Pulse(_conditionVariable);
             }
 
-            if(writerThread != null)
+            if(_writerThread != null)
             {
-                writerThread.Join();
+                _writerThread.Join();
             }
         }
 
@@ -112,7 +112,7 @@ namespace SanBot.Core
             }
         }
 
-        byte[] _pollBytes = new byte[65535];
+        private byte[] _pollBytes = new byte[65535];
         public void Poll()
         {
             List<IPacket> packetsToSend = new List<IPacket>();

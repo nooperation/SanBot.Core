@@ -86,14 +86,11 @@ namespace SanBot.Core
 
         public void SendPacket(IPacket packet)
         {
-           // Output("SendPacket: " + packet.GetType() + "\n" + packet);
             SendRaw(packet.GetBytes());
         }
 
         public void SendRaw(byte[] bytes)
         {
-            //Output("SendRaw: " + Utils.DumpPacket(bytes, true));
-
             BinaryWriter bw = new BinaryWriter(accountConductor.GetStream());
             bw.Write(bytes.Length);
 
@@ -112,8 +109,6 @@ namespace SanBot.Core
 
         private void HandlePacket(byte[] packet)
         {
-           // Output("HandlePacket " + Utils.DumpPacket(packet, true));
-
             using (BinaryReader br = new BinaryReader(new MemoryStream(packet)))
             {
                 var id = br.ReadUInt32();

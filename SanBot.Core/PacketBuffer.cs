@@ -8,10 +8,11 @@ namespace SanBot.Core
 {
     public class PacketBuffer
     {
-        public byte[] RecvBuffer = new byte[0];
+        private byte[] _recvBuffer = new byte[0];
         public List<byte[]> Packets { get; set; } = new List<byte[]>();
-        public Action<List<IPacket>> OnProcessPackets { get; internal set; }
-        public Func<byte[], IPacket> DecodePacket { get; set; }
+
+        public Action<List<IPacket>> OnProcessPackets { get; internal set; } = delegate { };
+        public Func<byte[], IPacket> DecodePacket { get; set; } = (bytes) => throw new NotImplementedException();
 
         public void AppendBytes(byte[] bytes)
         {
@@ -25,12 +26,12 @@ namespace SanBot.Core
                 throw new Exception("numBytes > bytes.length");
             }
 
-            var newRecvBuffer = new byte[RecvBuffer.Length + numBytes];
-            RecvBuffer.CopyTo(newRecvBuffer, 0);
-            Array.Copy(bytes, 0, newRecvBuffer, RecvBuffer.Length, numBytes);
-            RecvBuffer = newRecvBuffer;
+            var newRecvBuffer = new byte[_recvBuffer.Length + numBytes];
+            _recvBuffer.CopyTo(newRecvBuffer, 0);
+            Array.Copy(bytes, 0, newRecvBuffer, _recvBuffer.Length, numBytes);
+            _recvBuffer = newRecvBuffer;
 
-            using (MemoryStream ms = new MemoryStream(RecvBuffer))
+            using (MemoryStream ms = new MemoryStream(_recvBuffer))
             {
                 using (BinaryReader br = new BinaryReader(ms))
                 {
@@ -54,9 +55,9 @@ namespace SanBot.Core
 
                     if(totalBytesConsumed > 0)
                     {
-                        newRecvBuffer = new byte[RecvBuffer.Length - totalBytesConsumed];
-                        Array.Copy(RecvBuffer, totalBytesConsumed, newRecvBuffer, 0, RecvBuffer.Length - totalBytesConsumed);
-                        RecvBuffer = newRecvBuffer;
+                        newRecvBuffer = new byte[_recvBuffer.Length - totalBytesConsumed];
+                        Array.Copy(_recvBuffer, totalBytesConsumed, newRecvBuffer, 0, _recvBuffer.Length - totalBytesConsumed);
+                        _recvBuffer = newRecvBuffer;
                     }
                 }
             }

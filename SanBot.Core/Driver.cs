@@ -761,9 +761,6 @@ namespace SanBot.Core
             var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
 
-
-         //   WebApi.SetAvatarIdAsync(MyPersonaDetails.Id, "43668ab727c00fd7d33a5af1085493dd").Wait();
-
             Output("Driver intialized. Starting KafkaClient");
             KafkaClient.Start(
                 accountConnectorResponse.ConnectorResponse.Host,
@@ -777,7 +774,7 @@ namespace SanBot.Core
             RegionAccountConnectorResponse = await WebApi.GetAccountConnectorSceneAsync(personaHandle, sceneHandle);
             CurrentInstanceId = new SanUUID(RegionAccountConnectorResponse.SceneUri.Substring(1 + RegionAccountConnectorResponse.SceneUri.LastIndexOf('/')));
 
-            var regionAddress = CurrentInstanceId!.Format();
+            var regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
@@ -808,6 +805,10 @@ namespace SanBot.Core
             {
                 throw new Exception("Failed to enter region");
             }
+            if(CurrentInstanceId == null)
+            {
+                throw new Exception($"{nameof(ClientRegionMessages_OnUserLoginReply)} - {nameof(CurrentInstanceId)} is null");
+            }
 
             Output("Logged into region: " + e.ToString());
 
@@ -828,7 +829,7 @@ namespace SanBot.Core
             };
             this.PersonasBySessionId[e.SessionId] = MyPersonaData;
 
-            var regionAddress = CurrentInstanceId!.Format();
+            var regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
@@ -981,17 +982,17 @@ namespace SanBot.Core
 
         public void SpeakAzure(string message, bool allowRepeating = false)
         {
+            if(AzureConfig == null || string.IsNullOrWhiteSpace(AzureConfig.key1))
+            {
+                Output("AzureConfig missing - ignoring speech");
+                return;
+            }
+
             if (message.Length >= 256)
             {
                 Output($"Ignored, too long ${message.Length}");
                 return;
             }
-
-            //if ((DateTime.Now - LastSpoke).TotalSeconds <= 1)
-            //{
-            //    Output($"Ignored, only {(DateTime.Now - LastSpoke).TotalSeconds} since last speaking");
-            //    return;
-            //}
 
             if (!allowRepeating && PreviousMessages.Contains(message))
             {
@@ -1002,7 +1003,6 @@ namespace SanBot.Core
             var speechConfig = SpeechConfig.FromSubscription(AzureConfig.key1, AzureConfig.region);
             speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Raw48Khz16BitMonoPcm);
             speechConfig.SpeechSynthesisVoiceName = "en-US-JennyNeural";
-            //speechConfig.SpeechSynthesisVoiceName = "en-US-AnaNeural";
 
             var audioCallbackHandler = new AudioStreamHandler(this);
             using (var audioConfig = Microsoft.CognitiveServices.Speech.Audio.AudioConfig.FromStreamOutput(audioCallbackHandler))
@@ -1023,6 +1023,15 @@ namespace SanBot.Core
             const int kFrameSize = 960;
             const int kFrequency = 48000;
 
+            if (CurrentInstanceId == null)
+            {
+                throw new Exception($"{nameof(Speak)} - {nameof(CurrentInstanceId)} is null");
+            }            
+            if (MyPersonaData?.AgentControllerId == null)
+            {
+                throw new Exception($"{nameof(Speak)} - {nameof(MyPersonaData.AgentControllerId)} is null");
+            }
+
             var pcmSamples = new short[rawPcmBytes.Length / 2];
             Buffer.BlockCopy(rawPcmBytes, 0, pcmSamples, 0, rawPcmBytes.Length);
 
@@ -1030,7 +1039,7 @@ namespace SanBot.Core
 
             var totalFrames = pcmSamples.Length / 960;
 
-            List<byte[]> messages = new List<byte[]>();
+            var messages = new List<byte[]>();
             for (int i = 0; i < totalFrames; i++)
             {
                 var compressedBytes = new byte[1276];
@@ -1064,18 +1073,7 @@ namespace SanBot.Core
             }
 
             Output("Kafka client logged in successfully");
-            //    https://atlas.sansar.com/experiences/mijekamunro/bingo-oracle
-            // default bot
-            // Driver.WebApi.SetAvatarIdAsync(Driver.MyPersonaDetails.Id, "43668ab727c00fd7d33a5af1085493dd").Wait();
 
-            // Driver.JoinRegion("djm3n4c3-9174", "dj-s-outside-fun2").Wait();
-            //   Driver.JoinRegion("sansar-studios", "social-hub").Wait();
-            //  Driver.JoinRegion("sansar-studios", "social-hub").Wait();
-            //  Driver.JoinRegion("lozhyde", "sxc").Wait();
-            // Driver.JoinRegion("mijekamunro", "bingo-oracle").Wait();
-            //  Driver.JoinRegion("nopnopnop", "owo").Wait();
-            //Driver.JoinRegion("nop", "rce-poc").Wait();
-            // Driver.JoinRegion("princesspea-0197", "wanderlust").Wait();
             if(RegionToJoin != null)
             {
                 JoinRegion(RegionToJoin.Value.PersonaHandle, RegionToJoin.Value.SceneHandle).Wait();
@@ -1084,13 +1082,9 @@ namespace SanBot.Core
 
         public void Disconnect()
         {
-            RegionClient?.Disconnect();
-            VoiceClient?.Disconnect();
-            KafkaClient?.Disconnect();
-
-            RegionClient = null;
-            VoiceClient = null;
-            KafkaClient = null;
+            RegionClient.Disconnect();
+            VoiceClient.Disconnect();
+            KafkaClient.Disconnect();
         }
 
         public bool Poll()

@@ -13,8 +13,6 @@ namespace SanBot.Core
 {
     public class RegionClient
     {
-        private object accountConductorLock = new object();
-        TcpClient accountConductor = new TcpClient();
         public event EventHandler<string>? OnOutput;
 
         public string? Hostname { get; set; }
@@ -36,8 +34,10 @@ namespace SanBot.Core
         public Simulation SimulationMessages { get; set; }
         public WorldState WorldStateMessages { get; set; }
 
-        private NetworkWriter _networkWriter;
-        private NetworkReader _networkReader;
+        private readonly NetworkWriter _networkWriter;
+        private readonly NetworkReader _networkReader;
+        private readonly object _accountConductorLock = new object();
+        private readonly TcpClient _accountConductor = new TcpClient();
 
         public RegionClient(Driver driver)
         {
@@ -68,10 +68,10 @@ namespace SanBot.Core
                 WorldStateMessages,
             };
 
-            _networkWriter = new NetworkWriter(accountConductor, accountConductorLock);
+            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock);
             _networkWriter.Start();
 
-            _networkReader = new NetworkReader(accountConductor, accountConductorLock);
+            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock);
             _networkReader.Start();
         }
 
@@ -82,7 +82,7 @@ namespace SanBot.Core
             Secret = secret;
 
             Output("Connecting...");
-            accountConductor.Connect(Hostname, Port);
+            _accountConductor.Connect(Hostname, Port);
             Output("OK");
 
             Output("Sending version packet...");
@@ -93,9 +93,9 @@ namespace SanBot.Core
 
         public void Disconnect()
         {
-            if (accountConductor.Connected)
+            if (_accountConductor.Connected)
             {
-                accountConductor.Close();
+                _accountConductor.Close();
             }
         }
 

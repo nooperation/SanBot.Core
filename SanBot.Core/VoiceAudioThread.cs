@@ -56,7 +56,7 @@ namespace SanBot.Core
                     continue;
                 }
 
-                if (AudioDataQueue.TryDequeue(out List<byte[]> rawAudioPackets))
+                if (AudioDataQueue.TryDequeue(out List<byte[]>? rawAudioPackets))
                 {
                     Console.WriteLine($"VoiceAudioThread: Audio payload found. Sending it... rawAudioPackets={rawAudioPackets.Count}");
                     _isSpeaking = true;

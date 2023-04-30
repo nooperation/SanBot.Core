@@ -22,21 +22,21 @@ namespace SanBot.Core
 {
     internal class NetworkReader
     {
-        private object _accountConductorLock;
-        private TcpClient _accountConductor;
-       
-        private PacketBuffer PacketBuffer = new PacketBuffer();
+        private readonly object _accountConductorLock;
+        private readonly TcpClient _accountConductor;
+        private readonly PacketBuffer _packetBuffer = new PacketBuffer();
+
+        Thread? _readerThread;
+        private volatile bool _isRunning = false;
+
         public NetworkReader(TcpClient accountConductor, object accountConductorLock)
         {
-            PacketBuffer.OnProcessPackets = ProcessPackets;
-            PacketBuffer.DecodePacket = DecodePacket;
+            _packetBuffer.OnProcessPackets = ProcessPackets;
+            _packetBuffer.DecodePacket = DecodePacket;
 
             _accountConductor = accountConductor;
             _accountConductorLock = accountConductorLock;
         }
-
-        Thread? readerThread;
-        private volatile bool _isRunning = false;
 
         public void Start()
         {
@@ -48,7 +48,7 @@ namespace SanBot.Core
             }
 
             _isRunning = true;
-            readerThread = new Thread(() =>
+            _readerThread = new Thread(() =>
             {
                 while (_isRunning)
                 {
@@ -58,7 +58,7 @@ namespace SanBot.Core
                     }
                 }
             });
-            readerThread.Start();
+            _readerThread.Start();
         }
         public void Stop()
         {
@@ -70,12 +70,13 @@ namespace SanBot.Core
             }
 
             _isRunning = false;
-            if (readerThread != null)
+            if (_readerThread != null)
             {
-                readerThread.Join();
+                _readerThread.Join();
             }
         }
 
+        // TODO: Rewrite so we don't have to allocate for each packet processed
         private IPacket DecodePacket(byte[] packet)
         {
             using (BinaryReader reader = new BinaryReader(new MemoryStream(packet)))
@@ -475,8 +476,7 @@ namespace SanBot.Core
             }
         }
 
-
-        byte[] PollBuffer = new byte[16384];
+        private readonly byte[] _pollBuffer = new byte[16384];
         public bool Poll()
         {
             if (_accountConductor.Available == 0)
@@ -490,41 +490,42 @@ namespace SanBot.Core
                 while (_accountConductor.Available > 0)
                 {
                     var instream = _accountConductor.GetStream();
-                    var numBytesRead = instream.Read(PollBuffer, 0, PollBuffer.Length);
-                    PacketBuffer.AppendBytes(PollBuffer, numBytesRead);
+                    var numBytesRead = instream.Read(_pollBuffer, 0, _pollBuffer.Length);
+                    _packetBuffer.AppendBytes(_pollBuffer, numBytesRead);
                 }
             }
  
-            if(PacketBuffer.Packets.Count > 0)
+            if(_packetBuffer.Packets.Count > 0)
             {
-                PacketBuffer.ProcessPacketQueue();
+                _packetBuffer.ProcessPacketQueue();
                 return true;
             }
 
             return false;
         }
 
-        private object AvailablePacketsLock = new object();
-        private List<IPacket> AvailablePackets { get; set; } = new List<IPacket>();
+        private object _availablePacketsLock = new object();
+        private List<IPacket> _availablePackets { get; set; } = new List<IPacket>();
+
         private void ProcessPackets(List<IPacket> packets)
         {
-            lock(AvailablePacketsLock)
+            lock(_availablePacketsLock)
             {
-                AvailablePackets.AddRange(packets);
+                _availablePackets.AddRange(packets);
             }
         }
 
         public List<IPacket>? GetAvailablePackets()
         {
-            lock (AvailablePacketsLock)
+            lock (_availablePacketsLock)
             {
-                if(AvailablePackets.Count == 0)
+                if(_availablePackets.Count == 0)
                 {
                     return null;
                 }
 
-                var newPackets = AvailablePackets;
-                AvailablePackets = new List<IPacket>();
+                var newPackets = _availablePackets;
+                _availablePackets = new List<IPacket>();
 
                 return newPackets;
             }
