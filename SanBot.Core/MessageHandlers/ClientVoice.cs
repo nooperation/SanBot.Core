@@ -9,105 +9,92 @@ namespace SanBot.Core.MessageHandlers
 {
     public class ClientVoice : IMessageHandler
     {
-        public event EventHandler<Login>? OnLogin;
-        public event EventHandler<LoginReply>? OnLoginReply;
-        public event EventHandler<AudioData>? OnAudioData;
-        public event EventHandler<SpeechGraphicsData>? OnSpeechGraphicsData;
-        public event EventHandler<LocalAudioData>? OnLocalAudioData;
-        public event EventHandler<LocalAudioStreamState>? OnLocalAudioStreamState;
-        public event EventHandler<LocalAudioPosition>? OnLocalAudioPosition;
-        public event EventHandler<LocalAudioMute>? OnLocalAudioMute;
-        public event EventHandler<LocalSetRegionBroadcasted>? OnLocalSetRegionBroadcasted;
-        public event EventHandler<LocalSetMuteAll>? OnLocalSetMuteAll;
-        public event EventHandler<GroupAudioData>? OnGroupAudioData;
-        public event EventHandler<LocalTextData>? OnLocalTextData;
-        public event EventHandler<MasterInstance>? OnMasterInstance;
-        public event EventHandler<VoiceModerationCommand>? OnVoiceModerationCommand;
-        public event EventHandler<VoiceModerationCommandResponse>? OnVoiceModerationCommandResponse;
-        public event EventHandler<VoiceNotification>? OnVoiceNotification;
+        public Action<IPacket>? OnPacket;
 
         public bool OnMessage(uint messageId, BinaryReader reader)
         {
+            IPacket? newPacket = null;
+
             switch (messageId)
             {
-                case Messages.ClientVoice.Login:
+                case Messages.ClientVoiceMessages.Login:
                 {
-                    this.HandleLogin(reader);
+                    newPacket = new Login(reader);
                     break;
                 }
-                case Messages.ClientVoice.LoginReply:
+                case Messages.ClientVoiceMessages.LoginReply:
                 {
-                    this.HandleLoginReply(reader);
+                    newPacket = new LoginReply(reader);
                     break;
                 }
-                case Messages.ClientVoice.AudioData:
+                case Messages.ClientVoiceMessages.AudioData:
                 {
-                    this.HandleAudioData(reader);
+                    newPacket = new AudioData(reader);
                     break;
                 }
-                case Messages.ClientVoice.SpeechGraphicsData:
+                case Messages.ClientVoiceMessages.SpeechGraphicsData:
                 {
-                    this.HandleSpeechGraphicsData(reader);
+                    newPacket = new SpeechGraphicsData(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalAudioData:
+                case Messages.ClientVoiceMessages.LocalAudioData:
                 {
-                    this.HandleLocalAudioData(reader);
+                    newPacket = new LocalAudioData(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalAudioStreamState:
+                case Messages.ClientVoiceMessages.LocalAudioStreamState:
                 {
-                    this.HandleLocalAudioStreamState(reader);
+                    newPacket = new LocalAudioStreamState(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalAudioPosition:
+                case Messages.ClientVoiceMessages.LocalAudioPosition:
                 {
-                    this.HandleLocalAudioPosition(reader);
+                    newPacket = new LocalAudioPosition(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalAudioMute:
+                case Messages.ClientVoiceMessages.LocalAudioMute:
                 {
-                    this.HandleLocalAudioMute(reader);
+                    newPacket = new LocalAudioMute(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalSetRegionBroadcasted:
+                case Messages.ClientVoiceMessages.LocalSetRegionBroadcasted:
                 {
-                    this.HandleLocalSetRegionBroadcasted(reader);
+                    newPacket = new LocalSetRegionBroadcasted(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalSetMuteAll:
+                case Messages.ClientVoiceMessages.LocalSetMuteAll:
                 {
-                    this.HandleLocalSetMuteAll(reader);
+                    newPacket = new LocalSetMuteAll(reader);
                     break;
                 }
-                case Messages.ClientVoice.GroupAudioData:
+                case Messages.ClientVoiceMessages.GroupAudioData:
                 {
-                    this.HandleGroupAudioData(reader);
+                    newPacket = new GroupAudioData(reader);
                     break;
                 }
-                case Messages.ClientVoice.LocalTextData:
+                case Messages.ClientVoiceMessages.LocalTextData:
                 {
-                    this.HandleLocalTextData(reader);
+                    newPacket = new LocalTextData(reader);
                     break;
                 }
-                case Messages.ClientVoice.MasterInstance:
+                case Messages.ClientVoiceMessages.MasterInstance:
                 {
-                    this.HandleMasterInstance(reader);
+                    newPacket = new MasterInstance(reader);
                     break;
                 }
-                case Messages.ClientVoice.VoiceModerationCommand:
+                case Messages.ClientVoiceMessages.VoiceModerationCommand:
                 {
-                    this.HandleVoiceModerationCommand(reader);
+                    newPacket = new VoiceModerationCommand(reader);
                     break;
                 }
-                case Messages.ClientVoice.VoiceModerationCommandResponse:
+                case Messages.ClientVoiceMessages.VoiceModerationCommandResponse:
                 {
-                    this.HandleVoiceModerationCommandResponse(reader);
+                    newPacket = new VoiceModerationCommandResponse(reader);
                     break;
                 }
-                case Messages.ClientVoice.VoiceNotification:
+                case Messages.ClientVoiceMessages.VoiceNotification:
                 {
-                    this.HandleVoiceNotification(reader);
+                    newPacket = new VoiceNotification(reader);
                     break;
                 }
                 default:
@@ -116,131 +103,9 @@ namespace SanBot.Core.MessageHandlers
                 }
             }
 
+            OnPacket?.Invoke(newPacket);
+
             return true;
-        }
-
-        void HandleLogin(BinaryReader reader)
-        {
-            var packet = new Login(reader);
-            OnLogin?.Invoke(this, packet);
-        }
-
-        void HandleLoginReply(BinaryReader reader)
-        {
-            var packet = new LoginReply(reader);
-            OnLoginReply?.Invoke(this, packet);
-
-            //var newPacket = new LocalSetRegionBroadcasted(1);
-            ////Client.Instance.VoiceClient.SendPacket(newPacket);
-            //Client.SendPacket(newPacket);
-
-            //// TODO: SEND LocalAudioStreamState
-            //using (MemoryStream ms = new MemoryStream())
-            //{
-            //    var setState = new SanProtocol.ClientVoice.LocalAudioStreamState(Client.Instance.VoiceClient.InstanceId, 0, 0, 1);
-            //    //Client.Instance.VoiceClient.SendPacket(setState);
-            //    Client.SendPacket(setState);
-            //}
-
-            //// TODO: SEND LocalAudioPosition
-            //// 06 9C BA 98 17 00 00 00 00 DB 4D 89 F0 CC E5 75 E1 BF 9B 0E 6F 4F 4D 5A 9C 10 35 C1 3E C0 6E 10 A2 10 3F 27 3B 01 00 00 00 3C 68
-            ////    9C BA 98 17 00 00 00 00 2B 40 74 87 5D 85 0D 75 C9 B9 61 AB 11 5E D2 9A 00 00 00 00 F1 BF FA A1 5A 02 26 3B 02 00 00 00
-            //using (MemoryStream ms = new MemoryStream())
-            //{
-            //    var setState = new SanProtocol.ClientVoice.LocalAudioPosition(
-            //        0,
-            //        Client.Instance.VoiceClient.InstanceId,
-            //        new List<float>() { 0, 0, 0 },
-            //        0//Client.Instance.MyAgentControllerId.Value
-            //    );
-
-            //    //Client.Instance.VoiceClient.SendPacket(setState);
-            //    Client.SendPacket(setState);
-            //}
-        }
-
-        void HandleAudioData(BinaryReader reader)
-        {
-            var packet = new AudioData(reader);
-            OnAudioData?.Invoke(this, packet);
-        }
-
-        void HandleSpeechGraphicsData(BinaryReader reader)
-        {
-            var packet = new SpeechGraphicsData(reader);
-            OnSpeechGraphicsData?.Invoke(this, packet);
-        }
-
-        void HandleLocalAudioData(BinaryReader reader)
-        {
-            var packet = new LocalAudioData(reader);
-            OnLocalAudioData?.Invoke(this, packet);
-        }
-
-        void HandleLocalAudioStreamState(BinaryReader reader)
-        {
-            var packet = new LocalAudioStreamState(reader);
-            OnLocalAudioStreamState?.Invoke(this, packet);
-        }
-
-        void HandleLocalAudioPosition(BinaryReader reader)
-        {
-            var packet = new LocalAudioPosition(reader);
-            OnLocalAudioPosition?.Invoke(this, packet);
-        }
-
-        void HandleLocalAudioMute(BinaryReader reader)
-        {
-            var packet = new LocalAudioMute(reader);
-            OnLocalAudioMute?.Invoke(this, packet);
-        }
-
-        void HandleLocalSetRegionBroadcasted(BinaryReader reader)
-        {
-            var packet = new LocalSetRegionBroadcasted(reader);
-            OnLocalSetRegionBroadcasted?.Invoke(this, packet);
-        }
-
-        void HandleLocalSetMuteAll(BinaryReader reader)
-        {
-            var packet = new LocalSetMuteAll(reader);
-            OnLocalSetMuteAll?.Invoke(this, packet);
-        }
-
-        void HandleGroupAudioData(BinaryReader reader)
-        {
-            var packet = new GroupAudioData(reader);
-            OnGroupAudioData?.Invoke(this, packet);
-        }
-
-        void HandleLocalTextData(BinaryReader reader)
-        {
-            var packet = new LocalTextData(reader);
-            OnLocalTextData?.Invoke(this, packet);
-        }
-
-        void HandleMasterInstance(BinaryReader reader)
-        {
-            var packet = new MasterInstance(reader);
-            OnMasterInstance?.Invoke(this, packet);
-        }
-
-        void HandleVoiceModerationCommand(BinaryReader reader)
-        {
-            var packet = new VoiceModerationCommand(reader);
-            OnVoiceModerationCommand?.Invoke(this, packet);
-        }
-
-        void HandleVoiceModerationCommandResponse(BinaryReader reader)
-        {
-            var packet = new VoiceModerationCommandResponse(reader);
-            OnVoiceModerationCommandResponse?.Invoke(this, packet);
-        }
-
-        void HandleVoiceNotification(BinaryReader reader)
-        {
-            var packet = new VoiceNotification(reader);
-            OnVoiceNotification?.Invoke(this, packet);
         }
 
         public bool OnMessage(IPacket packet)

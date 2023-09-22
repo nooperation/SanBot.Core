@@ -14,25 +14,13 @@ namespace SanBot.Core
     public class RegionClient
     {
         public event EventHandler<string>? OnOutput;
+        public Action<IPacket>? OnPacket;
 
         public string? Hostname { get; set; }
         public int Port { get; set; }
         public uint Secret { get; set; }
 
-        private List<IMessageHandler> MessageHandlers { get; }
-        public PacketBuffer PacketBuffer { get; set; } = new PacketBuffer();
         public Driver Driver { get; }
-
-        public AgentController AgentControllerMessages { get; set; }
-        public AnimationComponent AnimationComponentMessages { get; set; }
-        public Audio AudioMessages { get; set; }
-        public ClientRegion ClientRegionMessages { get; set; }
-        public EditServer EditServerMessages { get; set; }
-        public GameWorld GameWorldMessages { get; set; }
-        public RegionRegion RegionRegionMessages { get; set; }
-        public Render RenderMessages { get; set; }
-        public Simulation SimulationMessages { get; set; }
-        public WorldState WorldStateMessages { get; set; }
 
         private readonly NetworkWriter _networkWriter;
         private readonly NetworkReader _networkReader;
@@ -42,31 +30,6 @@ namespace SanBot.Core
         public RegionClient(Driver driver)
         {
             this.Driver = driver;
-
-            this.AgentControllerMessages = new MessageHandlers.AgentController();
-            this.AnimationComponentMessages = new MessageHandlers.AnimationComponent();
-            this.AudioMessages = new MessageHandlers.Audio();
-            this.ClientRegionMessages = new MessageHandlers.ClientRegion();
-            this.EditServerMessages = new MessageHandlers.EditServer();
-            this.GameWorldMessages = new MessageHandlers.GameWorld();
-            this.RegionRegionMessages = new MessageHandlers.RegionRegion();
-            this.RenderMessages = new MessageHandlers.Render();
-            this.SimulationMessages = new MessageHandlers.Simulation();
-            this.WorldStateMessages = new MessageHandlers.WorldState();
-
-            this.MessageHandlers = new List<IMessageHandler>()
-            {
-                AgentControllerMessages,
-                AnimationComponentMessages,
-                AudioMessages,
-                ClientRegionMessages,
-                EditServerMessages,
-                GameWorldMessages,
-                RegionRegionMessages,
-                RenderMessages,
-                SimulationMessages,
-                WorldStateMessages,
-            };
 
             _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock);
             _networkWriter.Start();
@@ -115,13 +78,7 @@ namespace SanBot.Core
                     continue;
                 }
 
-                foreach (var item in MessageHandlers)
-                {
-                    if(item.OnMessage(packet))
-                    {
-                        break;
-                    }
-                }
+                OnPacket(packet);
             }
             _networkWriter.SendQueuedPackets();
 
@@ -151,6 +108,5 @@ namespace SanBot.Core
         {
             OnOutput?.Invoke(this, message);
         }
-
     }
 }

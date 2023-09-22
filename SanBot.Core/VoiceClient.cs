@@ -14,20 +14,21 @@ namespace SanBot.Core
 {
     public class VoiceClient
     {
-        TcpClient accountConductor = new TcpClient();
         public event EventHandler<string>? OnOutput;
-        
+        public Action<IPacket>? OnPacket;
+
         public string? Hostname { get; set; }
         public int Port { get; set; }
         public uint Secret { get; set; }
         public SanUUID InstanceId { get; set; } = SanUUID.Zero;
         public bool GotVersionPacket { get; set; }
 
-        private List<IMessageHandler> MessageHandlers { get; }
-        public PacketBuffer PacketBuffer { get; set; } = new PacketBuffer();
-
-        public ClientVoice ClientVoiceMessages { get; set; }
         public Driver Driver { get; }
+
+        private readonly NetworkWriter _networkWriter;
+        private readonly NetworkReader _networkReader;
+        private readonly object _accountConductorLock = new object();
+        private readonly TcpClient _accountConductor = new TcpClient();
 
         public uint CurrentSequence { get; set; }
 
@@ -35,12 +36,11 @@ namespace SanBot.Core
         {
             this.Driver = driver;
 
-            this.ClientVoiceMessages = new ClientVoice();
+            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock);
+            _networkWriter.Start();
 
-            this.MessageHandlers = new List<IMessageHandler>()
-            {
-                ClientVoiceMessages
-            };
+            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock);
+            _networkReader.Start();
         }
 
         public void Start(string hostname, int port, uint secret, SanUUID instanceId)
@@ -49,10 +49,9 @@ namespace SanBot.Core
             Port = port;
             Secret = secret;
             InstanceId = instanceId;
-            // InstanceId = new SanUUID(sceneUri.Substring(1 + sceneUri.LastIndexOf('/')));
 
             Output("Connecting...");
-            accountConductor.Connect(Hostname, Port);
+            _accountConductor.Connect(Hostname, Port);
             Output("OK");
 
             Output("Sending version packet...");
@@ -63,102 +62,48 @@ namespace SanBot.Core
 
         public void Disconnect()
         {
-            if (accountConductor.Connected)
+            if (_accountConductor.Connected)
             {
-                accountConductor.Close();
+                _accountConductor.Close();
             }
         }
 
-        byte[] PollBuffer = new byte[16384];
-
         public bool Poll()
         {
-            if (accountConductor.Available == 0)
+            var packets = _networkReader.GetAvailablePackets();
+            if (packets == null)
             {
                 return false;
             }
 
-            var instream = accountConductor.GetStream();
-
-            var numBytesRead = instream.Read(PollBuffer, 0, PollBuffer.Length);
-
-            PacketBuffer.AppendBytes(PollBuffer, numBytesRead);
-            foreach (var packet in PacketBuffer.Packets)
+            foreach (var packet in packets)
             {
-                HandlePacket(packet);
+                if (packet.MessageId == 0)
+                {
+                    HandleVersionPacket((VersionPacket)packet);
+                    continue;
+                }
+
+                OnPacket?.Invoke(packet);
             }
-            PacketBuffer.Packets.Clear();
+            _networkWriter.SendQueuedPackets();
 
             return true;
         }
 
         public void SendPacket(IPacket packet)
         {
-           // Output("SendPacket: " + packet.GetType() + "\n" + packet);
             SendRaw(packet.GetBytes());
         }
 
         public void SendRaw(byte[] bytes)
         {
-            //Output("SendRaw: " + Utils.DumpPacket(bytes, true));
-
-            BinaryWriter bw = new BinaryWriter(accountConductor.GetStream());
-            bw.Write(bytes.Length);
-
-            var bytesRemaining = bytes.Length;
-            var bytesOffset = 0;
-            while (bytesRemaining > 0)
-            {
-                var bytesToSend = bytesRemaining > 4096 ? 4096 : bytesRemaining;
-
-                bw.Write(bytes, bytesOffset, bytesToSend);
-
-                bytesRemaining -= bytesToSend;
-                bytesOffset += bytesToSend;
-            }
+            _networkWriter.SendRaw(bytes, 0, bytes.Length);
         }
 
-        private void HandlePacket(byte[] packet)
+        private void HandleVersionPacket(VersionPacket packet)
         {
-           // Output("HandlePacket " + Utils.DumpPacket(packet, true));
-
-            using (BinaryReader br = new BinaryReader(new MemoryStream(packet)))
-            {
-                var id = br.ReadUInt32();
-
-                switch (id)
-                {
-                    case 0:
-                        HandleVersionPacket(br);
-                        break;
-                    default:
-                    {
-                        bool handledMessage = false;
-                        foreach (var item in MessageHandlers)
-                        {
-                            if (item.OnMessage(id, br))
-                            {
-                                handledMessage = true;
-                                break;
-                            }
-                        }
-
-                        if (handledMessage == false)
-                        {
-                            Output("Unhandled Message");
-                        }
-                    }
-                    break;
-                }
-            }
-        }
-
-        private void HandleVersionPacket(BinaryReader br)
-        {
-            Output("Got version packet from server");
-            var versionPacket = new VersionPacket(br);
-
-            Output("Sending login packet...");
+            Output("Got version packet from server, sending login packet");
             var loginPacket = new SanProtocol.ClientVoice.Login(
                 InstanceId,
                 Secret,
@@ -166,7 +111,6 @@ namespace SanBot.Core
                 0
             );
             SendPacket(loginPacket);
-
             GotVersionPacket = true;
         }
 

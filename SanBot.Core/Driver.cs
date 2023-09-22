@@ -1,24 +1,17 @@
-﻿using SanWebApi.Json;
+﻿using Concentus.Structs;
+using NAudio.Wave;
+using SanBot.Database;
 using SanProtocol;
+using SanProtocol.AgentController;
 using SanProtocol.ClientKafka;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using SanProtocol.ClientRegion;
+using SanProtocol.ClientVoice;
+using SanWebApi;
+using SanWebApi.Json;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using SanWebApi;
-using Newtonsoft.Json;
-using SanProtocol.AgentController;
-using SanProtocol.ClientRegion;
 using static SanBot.Database.Services.PersonaService;
-using SanBot.Database;
-using Concentus.Structs;
-using SanProtocol.ClientVoice;
-using Microsoft.CognitiveServices.Speech.Audio;
-using Microsoft.CognitiveServices.Speech;
-using Google.Cloud.TextToSpeech.V1;
-using NAudio.Wave;
 
 namespace SanBot.Core
 {
@@ -52,14 +45,13 @@ namespace SanBot.Core
         }
     }
 
-
-
-    public class Driver
+    public partial class Driver
     {
         public event EventHandler<string>? OnOutput;
+        public Action<IPacket>? OnPacket;
 
         private SanBot.Database.PersonaDatabase Database { get; }
-        
+
         public KafkaClient KafkaClient { get; set; }
         public RegionClient RegionClient { get; set; }
         public VoiceClient VoiceClient { get; set; }
@@ -76,6 +68,7 @@ namespace SanBot.Core
         public PersonaData? MyPersonaData { get; set; }
         public VoiceAudioThread AudioThread { get; set; }
         public bool IsSpeaking => AudioThread.IsSpeaking;
+        public uint? MySessionId { get; set; }
 
         public bool TryToAvoidInterruptingPeople { get; set; } = false;
         public bool UseVoice { get; set; } = true;
@@ -97,38 +90,77 @@ namespace SanBot.Core
             RegionClient.OnOutput += RegionClient_OnOutput;
             VoiceClient.OnOutput += VoiceClient_OnOutput;
 
-            KafkaClient.ClientKafkaMessages.OnLoginReply += ClientKafkaMessages_OnLoginReply;
-            KafkaClient.ClientKafkaMessages.OnPrivateChat += ClientKafkaMessages_OnPrivateChat;
-
-            RegionClient.ClientRegionMessages.OnUserLoginReply += ClientRegionMessages_OnUserLoginReply;
-            RegionClient.ClientRegionMessages.OnAddUser += ClientRegionMessages_OnAddUser;
-            RegionClient.ClientRegionMessages.OnRemoveUser += ClientRegionMessages_OnRemoveUser;
-            RegionClient.ClientRegionMessages.OnSetAgentController += ClientRegionMessages_OnSetAgentController;
-
-            RegionClient.SimulationMessages.OnTimestamp += SimulationMessages_OnTimestamp;
-            RegionClient.SimulationMessages.OnInitialTimestamp += SimulationMessages_OnInitialTimestamp;
-
-            RegionClient.AnimationComponentMessages.OnCharacterTransform += AnimationComponentMessages_OnCharacterTransform;
-            RegionClient.AnimationComponentMessages.OnCharacterTransformPersistent += AnimationComponentMessages_OnCharacterTransformPersistent;
-            RegionClient.AgentControllerMessages.OnCharacterControllerInputReliable += AgentControllerMessages_OnCharacterControllerInputReliable;
-            RegionClient.AgentControllerMessages.OnCharacterControllerInput += AgentControllerMessages_OnCharacterControllerInput;
-
-            RegionClient.WorldStateMessages.OnCreateAgentController += WorldStateMessages_OnCreateAgentController;
-            RegionClient.WorldStateMessages.OnDestroyAgentController += WorldStateMessages_OnDestroyAgentController;
-            RegionClient.WorldStateMessages.OnDestroyCluster += WorldStateMessages_OnDestroyCluster;
-            RegionClient.WorldStateMessages.OnCreateClusterViaDefinition += WorldStateMessages_OnCreateClusterViaDefinition;
-
-            VoiceClient.ClientVoiceMessages.OnLocalAudioData += ClientVoiceMessages_OnLocalAudioData;
-
+            KafkaClient.OnPacket = OnKafkaPacket;
+            RegionClient.OnPacket = OnKafkaPacket;
+            VoiceClient.OnPacket = OnKafkaPacket;
 
             AudioThread = new VoiceAudioThread(VoiceClient.SendRaw, TryToAvoidInterruptingPeople);
         }
 
+        private void OnKafkaPacket(IPacket packet)
+        {
+            switch (packet.MessageId)
+            {
+                case Messages.ClientKafkaMessages.LoginReply:
+                    ClientKafkaMessages_OnLoginReply((SanProtocol.ClientKafka.LoginReply)packet);
+                    break;
+                case Messages.ClientKafkaMessages.PrivateChat:
+                    ClientKafkaMessages_OnPrivateChat((SanProtocol.ClientKafka.PrivateChat)packet);
+                    break;
+                case Messages.ClientRegionMessages.UserLoginReply:
+                    ClientRegionMessages_OnUserLoginReply((SanProtocol.ClientRegion.UserLoginReply)packet);
+                    break;
+                case Messages.ClientRegionMessages.AddUser:
+                    ClientRegionMessages_OnAddUser((SanProtocol.ClientRegion.AddUser)packet);
+                    break;
+                case Messages.ClientRegionMessages.RemoveUser:
+                    ClientRegionMessages_OnRemoveUser((SanProtocol.ClientRegion.RemoveUser)packet);
+                    break;
+                case Messages.ClientRegionMessages.SetAgentController:
+                    ClientRegionMessages_OnSetAgentController((SanProtocol.ClientRegion.SetAgentController)packet);
+                    break;
+                case Messages.SimulationMessages.Timestamp:
+                    SimulationMessages_OnTimestamp((SanProtocol.Simulation.Timestamp)packet);
+                    break;
+                case Messages.SimulationMessages.InitialTimestamp:
+                    SimulationMessages_OnInitialTimestamp((SanProtocol.Simulation.InitialTimestamp)packet);
+                    break;
+                case Messages.AnimationComponentMessages.CharacterTransform:
+                    AnimationComponentMessages_OnCharacterTransform((SanProtocol.AnimationComponent.CharacterTransform)packet);
+                    break;
+                case Messages.AnimationComponentMessages.CharacterTransformPersistent:
+                    AnimationComponentMessages_OnCharacterTransformPersistent((SanProtocol.AnimationComponent.CharacterTransformPersistent)packet);
+                    break;
+                case Messages.AgentControllerMessages.CharacterControllerInputReliable:
+                    AgentControllerMessages_OnCharacterControllerInputReliable((SanProtocol.AgentController.CharacterControllerInputReliable)packet);
+                    break;
+                case Messages.AgentControllerMessages.CharacterControllerInput:
+                    AgentControllerMessages_OnCharacterControllerInput((SanProtocol.AgentController.CharacterControllerInput)packet);
+                    break;
+                case Messages.WorldStateMessages.CreateAgentController:
+                    WorldStateMessages_OnCreateAgentController((SanProtocol.WorldState.CreateAgentController)packet);
+                    break;
+                case Messages.WorldStateMessages.DestroyAgentController:
+                    WorldStateMessages_OnDestroyAgentController((SanProtocol.WorldState.DestroyAgentController)packet);
+                    break;
+                case Messages.WorldStateMessages.DestroyCluster:
+                    WorldStateMessages_OnDestroyCluster((SanProtocol.WorldState.DestroyCluster)packet);
+                    break;
+                case Messages.WorldStateMessages.CreateClusterViaDefinition:
+                    WorldStateMessages_OnCreateClusterViaDefinition((SanProtocol.WorldState.CreateClusterViaDefinition)packet);
+                    break;
+                case Messages.ClientVoiceMessages.LocalAudioData:
+                    ClientVoiceMessages_OnLocalAudioData((SanProtocol.ClientVoice.LocalAudioData)packet);
+                    break;
+            }
+
+            OnPacket?.Invoke(packet);
+        }
 
         public bool HaveIBeenCreatedYet { get; set; }
         public Dictionary<uint, List<float>> InitialClusterPositions { get; set; } = new Dictionary<uint, List<float>>();
 
-        private void WorldStateMessages_OnCreateClusterViaDefinition(object? sender, SanProtocol.WorldState.CreateClusterViaDefinition e)
+        private void WorldStateMessages_OnCreateClusterViaDefinition(SanProtocol.WorldState.CreateClusterViaDefinition e)
         {
             if (!HaveIBeenCreatedYet)
             {
@@ -137,7 +169,8 @@ namespace SanBot.Core
             }
         }
 
-        private void ClientVoiceMessages_OnLocalAudioData(object? sender, SanProtocol.ClientVoice.LocalAudioData e)
+        #region voiceStuff
+        private void ClientVoiceMessages_OnLocalAudioData(SanProtocol.ClientVoice.LocalAudioData e)
         {
             if (MyPersonaData == null || MyPersonaData.AgentControllerId == null)
             {
@@ -156,9 +189,11 @@ namespace SanBot.Core
             }
         }
 
-        private void AgentControllerMessages_OnCharacterControllerInput(object? sender, CharacterControllerInput e)
+        #endregion
+
+        private void AgentControllerMessages_OnCharacterControllerInput(CharacterControllerInput e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -170,9 +205,9 @@ namespace SanBot.Core
             personaData.LastControllerInput = e;
         }
 
-        private void AgentControllerMessages_OnCharacterControllerInputReliable(object? sender, CharacterControllerInputReliable e)
+        private void AgentControllerMessages_OnCharacterControllerInputReliable(CharacterControllerInputReliable e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -185,9 +220,9 @@ namespace SanBot.Core
         }
 
         #region PersonaTracking
-        private void WorldStateMessages_OnDestroyCluster(object? sender, SanProtocol.WorldState.DestroyCluster e)
+        private void WorldStateMessages_OnDestroyCluster(SanProtocol.WorldState.DestroyCluster e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.ClusterId == e.ClusterId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -199,13 +234,13 @@ namespace SanBot.Core
             Output($"Destroyed player's cluster for {personaData.UserName} ({personaData.Handle})");
         }
 
-        private void WorldStateMessages_OnCreateAgentController(object? sender, SanProtocol.WorldState.CreateAgentController e)
+        private void WorldStateMessages_OnCreateAgentController(SanProtocol.WorldState.CreateAgentController e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Key == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
-            if(personaData == null)
+            if (personaData == null)
             {
                 Output($"Got CreateAgentController message for unknown session {e.SessionId}");
                 return;
@@ -219,16 +254,16 @@ namespace SanBot.Core
             if (InitialClusterPositions.ContainsKey(e.ClusterId))
             {
                 Output($"Found my initial cluster position for agent session {e.SessionId}");
-                var initialPosition = InitialClusterPositions[e.ClusterId];
+                List<float> initialPosition = InitialClusterPositions[e.ClusterId];
                 personaData.Position[0] = initialPosition[0];
                 personaData.Position[1] = initialPosition[1];
                 personaData.Position[2] = initialPosition[2];
             }
         }
 
-        private void WorldStateMessages_OnDestroyAgentController(object? sender, SanProtocol.WorldState.DestroyAgentController e)
+        private void WorldStateMessages_OnDestroyAgentController(SanProtocol.WorldState.DestroyAgentController e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -241,15 +276,15 @@ namespace SanBot.Core
             Output($"Destroy agent controller for user {personaData.UserName} ({personaData.Handle})");
         }
 
-        private void ClientRegionMessages_OnSetAgentController(object? sender, SanProtocol.ClientRegion.SetAgentController e)
+        private void ClientRegionMessages_OnSetAgentController(SanProtocol.ClientRegion.SetAgentController e)
         {
-            if(HaveIBeenCreatedYet)
+            if (HaveIBeenCreatedYet)
             {
                 Output("Got a secondary OnSetAgentController? this is new...");
                 return;
             }
 
-            var myPersonaData = this.PersonasBySessionId
+            PersonaData? myPersonaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == MySessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -274,9 +309,9 @@ namespace SanBot.Core
             }
         }
 
-        private void ClientRegionMessages_OnRemoveUser(object? sender, SanProtocol.ClientRegion.RemoveUser e)
+        private void ClientRegionMessages_OnRemoveUser(SanProtocol.ClientRegion.RemoveUser e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -286,21 +321,21 @@ namespace SanBot.Core
                 Output($"Unknown user has left (SessionId = {e.SessionId})");
                 return;
             }
-            
+
             Output($"{personaData.UserName} ({personaData.Handle}) Left the region");
 
-            PersonasBySessionId.Remove(e.SessionId);
+            var unused = PersonasBySessionId.Remove(e.SessionId);
         }
 
-        private void ClientRegionMessages_OnAddUser(object? sender, SanProtocol.ClientRegion.AddUser e)
+        private void ClientRegionMessages_OnAddUser(SanProtocol.ClientRegion.AddUser e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
             if (personaData != null)
             {
-                if(e.SessionId != MySessionId)
+                if (e.SessionId != MySessionId)
                 {
                     Output($"WARNING: Adding a new user who has the session ID of a previous user. Overwriting previous session data");
                 }
@@ -332,13 +367,13 @@ namespace SanBot.Core
             Output($"{e.UserName} ({e.Handle}) Entered the region as session {e.SessionId}");
         }
 
-        private void AnimationComponentMessages_OnCharacterTransformPersistent(object? sender, SanProtocol.AnimationComponent.CharacterTransformPersistent e)
+        private void AnimationComponentMessages_OnCharacterTransformPersistent(SanProtocol.AnimationComponent.CharacterTransformPersistent e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentComponentId == e.ComponentId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
-            if(personaData == null)
+            if (personaData == null)
             {
                 return;
             }
@@ -348,9 +383,9 @@ namespace SanBot.Core
             personaData.Position[1] = e.Position[1];
             personaData.Position[2] = e.Position[2];
         }
-        private void AnimationComponentMessages_OnCharacterTransform(object? sender, SanProtocol.AnimationComponent.CharacterTransform e)
+        private void AnimationComponentMessages_OnCharacterTransform(SanProtocol.AnimationComponent.CharacterTransform e)
         {
-            var personaData = PersonasBySessionId
+            PersonaData? personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentComponentId == e.ComponentId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -381,13 +416,13 @@ namespace SanBot.Core
 
             const float kFrameFrequency = 1000.0f / 90.0f;
 
-            var millisecondsSinceLastTimestamp = ((DateTime.Now.Ticks - LastTimestampTicks)) / 10000;
-            var totalFramesSinceLastTimestamp = millisecondsSinceLastTimestamp / kFrameFrequency;
+            long millisecondsSinceLastTimestamp = (DateTime.Now.Ticks - LastTimestampTicks) / 10000;
+            float totalFramesSinceLastTimestamp = millisecondsSinceLastTimestamp / kFrameFrequency;
 
             return LastTimestampFrame + (ulong)totalFramesSinceLastTimestamp;
         }
 
-        private void SimulationMessages_OnInitialTimestamp(object? sender, SanProtocol.Simulation.InitialTimestamp e)
+        private void SimulationMessages_OnInitialTimestamp(SanProtocol.Simulation.InitialTimestamp e)
         {
             Output($"InitialTimestamp {e.Frame} | {e.Nanoseconds}");
 
@@ -396,7 +431,7 @@ namespace SanBot.Core
             InitialTimestamp = DateTimeOffset.Now.ToUnixTimeMilliseconds();
         }
 
-        private void SimulationMessages_OnTimestamp(object? sender, SanProtocol.Simulation.Timestamp e)
+        private void SimulationMessages_OnTimestamp(SanProtocol.Simulation.Timestamp e)
         {
             //Output($"Server frame: {e.Frame} Client frame: {GetCurrentFrame()} | Diff={(long)e.Frame - (long)GetCurrentFrame()}");
             LastTimestampFrame = e.Frame;
@@ -409,7 +444,7 @@ namespace SanBot.Core
         {
             if (KafkaClient != null)
             {
-                var newChatPacket = new RegionChat(
+                RegionChat newChatPacket = new(
                     new SanUUID(),
                     new SanUUID(),
                     "",
@@ -426,13 +461,13 @@ namespace SanBot.Core
 
         public void SendPrivateMessage(SanUUID other, string message)
         {
-            if(MyPersonaDetails == null)
+            if (MyPersonaDetails == null)
             {
                 Output("Cannot send private message because we don't have our own persona details yet...");
                 return;
             }
 
-            var privateMessagePacket = new PrivateChat(
+            PrivateChat privateMessagePacket = new(
                 0,
                 MyPersonaDetails.Id,
                 other,
@@ -444,7 +479,7 @@ namespace SanBot.Core
 
         public void RequestSpawnItem(ulong frame, SanUUID itemClusterResourceId, List<float> spawnPosition, Quaternion spawnOrientation, uint agentControllerId)
         {
-            var packet = new RequestSpawnItem(
+            RequestSpawnItem packet = new(
                 frame,
                 agentControllerId,
                 itemClusterResourceId,
@@ -458,7 +493,7 @@ namespace SanBot.Core
 
         public void RequestPortalAt(string sansarUri, string sansarUriDescription)
         {
-            var packet = new RequestDropPortal(sansarUri, sansarUriDescription);
+            RequestDropPortal packet = new(sansarUri, sansarUriDescription);
             RegionClient.SendPacket(packet);
         }
 
@@ -524,7 +559,7 @@ namespace SanBot.Core
             }
             else
             {
-                var distanceSinceFromLastVoicePosition =
+                double distanceSinceFromLastVoicePosition =
                     Math.Sqrt(
                         Math.Pow(position[0] - MyPersonaData.LastVoicePosition[0], 2) +
                         Math.Pow(position[1] - MyPersonaData.LastVoicePosition[1], 2) +
@@ -583,26 +618,26 @@ namespace SanBot.Core
         public static string Clusterbutt(string text)
         {
             text = text.Replace("-", "");
-            var match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
+            Match match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
             if (match.Success)
             {
-                var sb = new StringBuilder();
-                sb.Append(match.Groups[1 + 7]);
-                sb.Append(match.Groups[1 + 6]);
-                sb.Append(match.Groups[1 + 5]);
-                sb.Append(match.Groups[1 + 4]);
-                sb.Append(match.Groups[1 + 3]);
-                sb.Append(match.Groups[1 + 2]);
-                sb.Append(match.Groups[1 + 1]);
-                sb.Append(match.Groups[1 + 0]);
-                sb.Append(match.Groups[1 + 8 + 7]);
-                sb.Append(match.Groups[1 + 8 + 6]);
-                sb.Append(match.Groups[1 + 8 + 5]);
-                sb.Append(match.Groups[1 + 8 + 4]);
-                sb.Append(match.Groups[1 + 8 + 3]);
-                sb.Append(match.Groups[1 + 8 + 2]);
-                sb.Append(match.Groups[1 + 8 + 1]);
-                sb.Append(match.Groups[1 + 8 + 0]);
+                StringBuilder sb = new();
+                _ = sb.Append(match.Groups[1 + 7]);
+                _ = sb.Append(match.Groups[1 + 6]);
+                _ = sb.Append(match.Groups[1 + 5]);
+                _ = sb.Append(match.Groups[1 + 4]);
+                _ = sb.Append(match.Groups[1 + 3]);
+                _ = sb.Append(match.Groups[1 + 2]);
+                _ = sb.Append(match.Groups[1 + 1]);
+                _ = sb.Append(match.Groups[1 + 0]);
+                _ = sb.Append(match.Groups[1 + 8 + 7]);
+                _ = sb.Append(match.Groups[1 + 8 + 6]);
+                _ = sb.Append(match.Groups[1 + 8 + 5]);
+                _ = sb.Append(match.Groups[1 + 8 + 4]);
+                _ = sb.Append(match.Groups[1 + 8 + 3]);
+                _ = sb.Append(match.Groups[1 + 8 + 2]);
+                _ = sb.Append(match.Groups[1 + 8 + 1]);
+                _ = sb.Append(match.Groups[1 + 8 + 0]);
 
                 return sb.ToString();
             }
@@ -616,31 +651,26 @@ namespace SanBot.Core
         #region Database 
         public async Task<string?> GetPersonaName(SanUUID personaId)
         {
-            var persona = await ResolvePersonaId(personaId);
-            if (persona != null)
-            {
-                return $"{persona.Name} ({persona.Handle})";
-            }
-
-            return personaId.Format();
+            PersonaDto? persona = await ResolvePersonaId(personaId);
+            return persona != null ? $"{persona.Name} ({persona.Handle})" : personaId.Format();
         }
 
         public async Task<PersonaDto?> ResolvePersonaId(SanUUID personaId)
         {
-            var personaGuid = new Guid(personaId.Format());
+            Guid personaGuid = new(personaId.Format());
 
-            var persona = await Database.PersonaService.GetPersona(personaGuid);
+            PersonaDto? persona = await Database.PersonaService.GetPersona(personaGuid);
             if (persona != null)
             {
                 return persona;
             }
 
-            var profiles = await WebApi.GetProfiles(new List<string>() {
+            ProfilesResponse profiles = await WebApi.GetProfiles(new List<string>() {
                 personaId.Format(),
             });
 
             PersonaDto? foundPersona = null;
-            foreach (var item in profiles.Data)
+            foreach (ProfilesResponse.Datum? item in profiles.Data)
             {
                 if (new Guid(item.AvatarId) == personaGuid)
                 {
@@ -690,75 +720,40 @@ namespace SanBot.Core
             );
         }
 
-
-
-        public class GoogleConfigPayload
+        public async Task StartAsync(SecureString username, SecureString password)
         {
-            public string key { get; set; } = default!;
-        }
-        public class AzureConfigPayload
-        {
-            public string key1 { get; set; } = default!;
-            public string keyTranslator { get; set; } = default!;
-            public string region { get; set; } = default!;
-        }
-        public AzureConfigPayload? AzureConfig { get; set; }
-        private GoogleConfigPayload? GoogleConfig { get; set; }
-
-        public async Task StartAsync(ConfigFile config)
-        {
-            AzureConfig = null;
-            GoogleConfig = null;
-
-            try
-            {
-                var azureConfigPath = Path.Join(GetSanbotConfigPath(), "azure.json");
-                var configFileContents = File.ReadAllText(azureConfigPath);
-                var result = System.Text.Json.JsonSerializer.Deserialize<AzureConfigPayload>(configFileContents);
-                if (result == null || result.key1.Length == 0 || result.region.Length == 0)
-                {
-                    throw new Exception("Invalid azure config");
-                }
-
-                AzureConfig = result;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception("Missing or invalid azure config", ex);
-            }
-
-            await WebApi.Login(config.Username, config.Password);
+            await WebApi.Login(username, password);
 
             Output("Getting TOS status...");
-            var tosStatus = await WebApi.RequestTos();
+            TosResponse tosStatus = await WebApi.RequestTos();
             Output($"  Signed TOS = {tosStatus.Payload?.SignedTos}");
             Output($"OK");
 
             Output("Getting user info...");
-            var userInfoResult = await WebApi.RequestUserInfo();
+            UserInfoResponse userInfoResult = await WebApi.RequestUserInfo();
             MyUserInfo = userInfoResult.Payload;
             Output($"  AccountId = {MyUserInfo.AccountId}");
             Output("OK");
 
             Output("Getting personas...");
-            var personas = await WebApi.RequestPersonaByAccount(MyUserInfo.AccountId);
-            foreach (var item in personas.Payload)
+            PersonasByAccountResponse personas = await WebApi.RequestPersonaByAccount(MyUserInfo.AccountId);
+            foreach (PersonasByAccountResponse.PayloadClass? item in personas.Payload)
             {
                 Output($"  {item.Id} | {item.Handle} | {item.Name}");
 
                 if (item.IsDefault)
                 {
-                    this.MyPersonaDetails = WebApi.GetPersonaPrivate(item.Id).Result;
+                    MyPersonaDetails = WebApi.GetPersonaPrivate(item.Id).Result;
                 }
             }
-            if(this.MyPersonaDetails == null)
+            if (MyPersonaDetails == null)
             {
                 throw new Exception("Failed to find a default persona");
             }
             Output("OK");
 
             Output("Posting to account connector...");
-            var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
+            AccountConnectorResponse accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
 
             Output("Driver intialized. Starting KafkaClient");
@@ -772,14 +767,14 @@ namespace SanBot.Core
         public async Task JoinRegion(string personaHandle, string sceneHandle)
         {
             RegionAccountConnectorResponse = await WebApi.GetAccountConnectorSceneAsync(personaHandle, sceneHandle);
-            CurrentInstanceId = new SanUUID(RegionAccountConnectorResponse.SceneUri.Substring(1 + RegionAccountConnectorResponse.SceneUri.LastIndexOf('/')));
+            CurrentInstanceId = new SanUUID(RegionAccountConnectorResponse.SceneUri[(1 + RegionAccountConnectorResponse.SceneUri.LastIndexOf('/'))..]);
 
-            var regionAddress = CurrentInstanceId.Format();
+            string regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
 
-            if(!IgnoreRegionServer)
+            if (!IgnoreRegionServer)
             {
                 Output("Starting region client");
                 RegionClient.Start(
@@ -798,14 +793,13 @@ namespace SanBot.Core
             );
         }
 
-        public uint? MySessionId { get; set; }
-        private void ClientRegionMessages_OnUserLoginReply(object? sender, SanProtocol.ClientRegion.UserLoginReply e)
+        private void ClientRegionMessages_OnUserLoginReply(SanProtocol.ClientRegion.UserLoginReply e)
         {
             if (!e.Success)
             {
                 throw new Exception("Failed to enter region");
             }
-            if(CurrentInstanceId == null)
+            if (CurrentInstanceId == null)
             {
                 throw new Exception($"{nameof(ClientRegionMessages_OnUserLoginReply)} - {nameof(CurrentInstanceId)} is null");
             }
@@ -819,7 +813,7 @@ namespace SanBot.Core
 
             MySessionId = e.SessionId;
             Output("My session ID is " + e.SessionId);
-            if(this.PersonasBySessionId.ContainsKey(e.SessionId))
+            if (PersonasBySessionId.ContainsKey(e.SessionId))
             {
                 Output("*** Oh no, we were assigned session ID " + e.SessionId + ", but session ID " + e.SessionId + " already belongs to: " + PersonasBySessionId[e.SessionId].UserName ?? "UNKNOWN");
             }
@@ -827,9 +821,9 @@ namespace SanBot.Core
             {
                 SessionId = e.SessionId,
             };
-            this.PersonasBySessionId[e.SessionId] = MyPersonaData;
+            PersonasBySessionId[e.SessionId] = MyPersonaData;
 
-            var regionAddress = CurrentInstanceId.Format();
+            string regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
@@ -848,176 +842,6 @@ namespace SanBot.Core
             ));
         }
 
-        public class AudioStreamHandler : PushAudioOutputStreamCallback
-        {
-            public List<byte[]> CollectedBytes { get; set; } = new List<byte[]>();
-
-            public Driver Driver { get; set; }
-            public AudioStreamHandler(Driver driver)
-            {
-                this.Driver = driver;
-            }
-
-            public override uint Write(byte[] dataBuffer)
-            {
-                Driver.Output($"Write() - Added {dataBuffer.Length} bytes to the buffer");
-                CollectedBytes.Add(dataBuffer);
-
-                return (uint)dataBuffer.Length;
-            }
-
-            public override void Close()
-            {
-                Driver.Output("Audio data is ready to be consumed");
-
-                long totalSize = 0;
-                foreach (var item in CollectedBytes)
-                {
-                    totalSize += item.Length;
-                }
-
-                var buffer = new byte[totalSize];
-                var bufferOffset = 0;
-
-                foreach (var item in CollectedBytes)
-                {
-                    item.CopyTo(buffer, bufferOffset);
-                    bufferOffset += item.Length;
-                }
-
-                Driver.Speak(buffer);
-                base.Close();
-            }
-        }
-
-        static void OutputSpeechSynthesisResult(SpeechSynthesisResult speechSynthesisResult)
-        {
-            switch (speechSynthesisResult.Reason)
-            {
-                case ResultReason.SynthesizingAudioCompleted:
-                    Console.WriteLine($"Speech synthesized");
-                    break;
-                case ResultReason.Canceled:
-                    var cancellation = SpeechSynthesisCancellationDetails.FromResult(speechSynthesisResult);
-                    Console.WriteLine($"CANCELED: Reason={cancellation.Reason}");
-
-                    if (cancellation.Reason == CancellationReason.Error)
-                    {
-                        Console.WriteLine($"CANCELED: ErrorCode={cancellation.ErrorCode}");
-                        Console.WriteLine($"CANCELED: ErrorDetails=[{cancellation.ErrorDetails}]");
-                        Console.WriteLine($"CANCELED: Did you set the speech resource key and region values?");
-                    }
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        DateTime LastSpoke = DateTime.Now;
-        public HashSet<string> PreviousMessages { get; set; } = new HashSet<string>();
-        public string TextToSpeechVoice { get; set; } = $"<speak xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xmlns:emo='http://www.w3.org/2009/10/emotionml' version='1.0' xml:lang='en-US'><voice name=\"en-US-JennyNeural\"><prosody volume='40'  rate=\'20%\' pitch=\'0%\'>#MESSAGE#</prosody></voice></speak>";
-        public string GoogleTTSName { get; set; } = "";
-        public float GoogleTTSRate { get; set; } = 1.0f;
-        public float GoogleTTSPitch { get; set; } = 0;
-
-        public void Speak(string message, bool allowRepeating = false)
-        {
-            if (message.Length >= 256)
-            {
-                Output($"Ignored, too long ${message.Length}");
-                return;
-            }
-
-            //if ((DateTime.Now - LastSpoke).TotalSeconds <= 1)
-            //{
-            //    Output($"Ignored, only {(DateTime.Now - LastSpoke).TotalSeconds} since last speaking");
-            //    return;
-            //}
-
-            if (!allowRepeating && PreviousMessages.Contains(message))
-            {
-                return;
-            }
-            PreviousMessages.Add(message);
-
-
-            var client = TextToSpeechClient.Create();
-
-            var input = new SynthesisInput
-            {
-                Text = message,
-                
-            };
-            var voiceSelection = new VoiceSelectionParams
-            {
-                LanguageCode = "en-US",
-                Name = GoogleTTSName,
-                SsmlGender = SsmlVoiceGender.Neutral
-            };
-            var audioConfig = new Google.Cloud.TextToSpeech.V1.AudioConfig
-            {
-                AudioEncoding = AudioEncoding.Mp3,
-                SampleRateHertz = 48000,
-                SpeakingRate = GoogleTTSRate,
-                Pitch = GoogleTTSPitch
-            };
-            var response = client.SynthesizeSpeech(input, voiceSelection, audioConfig);
-
-            using (MemoryStream mp3Stream = new MemoryStream())
-            {
-                response.AudioContent.WriteTo(mp3Stream);
-                mp3Stream.Position = 0;
-
-                WaveStream pcm = WaveFormatConversionStream.CreatePcmStream(new Mp3FileReader(mp3Stream));
-                byte[] bytes = new byte[pcm.Length];
-                pcm.Position = 0;
-                pcm.Read(bytes, 0, (int)pcm.Length);
-                //File.WriteAllBytes("Bot.pcm", bytes);
-                Speak(bytes);
-            }
-
-            LastSpoke = DateTime.Now;
-        }
-
-
-        public void SpeakAzure(string message, bool allowRepeating = false)
-        {
-            if(AzureConfig == null || string.IsNullOrWhiteSpace(AzureConfig.key1))
-            {
-                Output("AzureConfig missing - ignoring speech");
-                return;
-            }
-
-            if (message.Length >= 256)
-            {
-                Output($"Ignored, too long ${message.Length}");
-                return;
-            }
-
-            if (!allowRepeating && PreviousMessages.Contains(message))
-            {
-                return;
-            }
-            PreviousMessages.Add(message);
-
-            var speechConfig = SpeechConfig.FromSubscription(AzureConfig.key1, AzureConfig.region);
-            speechConfig.SetSpeechSynthesisOutputFormat(SpeechSynthesisOutputFormat.Raw48Khz16BitMonoPcm);
-            speechConfig.SpeechSynthesisVoiceName = "en-US-JennyNeural";
-
-            var audioCallbackHandler = new AudioStreamHandler(this);
-            using (var audioConfig = Microsoft.CognitiveServices.Speech.Audio.AudioConfig.FromStreamOutput(audioCallbackHandler))
-            {
-                using (var speechSynthesizer = new SpeechSynthesizer(speechConfig, audioConfig))
-                {
-                    var ssml = TextToSpeechVoice.Replace("#MESSAGE#", message);
-                    var speechSynthesisResult = speechSynthesizer.SpeakSsmlAsync(ssml).Result;
-                    OutputSpeechSynthesisResult(speechSynthesisResult);
-                }
-            }
-
-            LastSpoke = DateTime.Now;
-        }
-
         public void Speak(byte[] rawPcmBytes)
         {
             const int kFrameSize = 960;
@@ -1026,26 +850,26 @@ namespace SanBot.Core
             if (CurrentInstanceId == null)
             {
                 throw new Exception($"{nameof(Speak)} - {nameof(CurrentInstanceId)} is null");
-            }            
+            }
             if (MyPersonaData?.AgentControllerId == null)
             {
                 throw new Exception($"{nameof(Speak)} - {nameof(MyPersonaData.AgentControllerId)} is null");
             }
 
-            var pcmSamples = new short[rawPcmBytes.Length / 2];
+            short[] pcmSamples = new short[rawPcmBytes.Length / 2];
             Buffer.BlockCopy(rawPcmBytes, 0, pcmSamples, 0, rawPcmBytes.Length);
 
             OpusEncoder encoder = OpusEncoder.Create(kFrequency, 1, Concentus.Enums.OpusApplication.OPUS_APPLICATION_VOIP);
 
-            var totalFrames = pcmSamples.Length / 960;
+            int totalFrames = pcmSamples.Length / 960;
 
-            var messages = new List<byte[]>();
+            List<byte[]> messages = new();
             for (int i = 0; i < totalFrames; i++)
             {
-                var compressedBytes = new byte[1276];
-                var written = encoder.Encode(pcmSamples, kFrameSize * i, kFrameSize, compressedBytes, 0, compressedBytes.Length);
+                byte[] compressedBytes = new byte[1276];
+                int written = encoder.Encode(pcmSamples, kFrameSize * i, kFrameSize, compressedBytes, 0, compressedBytes.Length);
 
-                var packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
+                byte[] packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
                     CurrentInstanceId,
                     MyPersonaData.AgentControllerId.Value,
                     new AudioData(VoiceClient.CurrentSequence, 1000, compressedBytes.Take(written).ToArray()),
@@ -1060,12 +884,12 @@ namespace SanBot.Core
             AudioThread.EnqueueData(messages);
         }
 
-        private void ClientKafkaMessages_OnPrivateChat(object? sender, PrivateChat e)
+        private void ClientKafkaMessages_OnPrivateChat(PrivateChat e)
         {
             Output($"(PRIVMSG) {e.FromPersonaId}: {e.Message}");
         }
 
-        private void ClientKafkaMessages_OnLoginReply(object? sender, SanProtocol.ClientKafka.LoginReply e)
+        private void ClientKafkaMessages_OnLoginReply(SanProtocol.ClientKafka.LoginReply e)
         {
             if (!e.Success)
             {
@@ -1074,7 +898,7 @@ namespace SanBot.Core
 
             Output("Kafka client logged in successfully");
 
-            if(RegionToJoin != null)
+            if (RegionToJoin != null)
             {
                 JoinRegion(RegionToJoin.Value.PersonaHandle, RegionToJoin.Value.SceneHandle).Wait();
             }
@@ -1093,9 +917,9 @@ namespace SanBot.Core
 
             if (KafkaClient != null)
             {
-                var clientHadData = true;
+                bool clientHadData = true;
 
-                while(clientHadData)
+                while (clientHadData)
                 {
                     clientHadData = KafkaClient.Poll();
                     handledData |= clientHadData;
@@ -1103,7 +927,7 @@ namespace SanBot.Core
             }
             if (RegionClient != null)
             {
-                var clientHadData = true;
+                bool clientHadData = true;
 
                 while (clientHadData)
                 {
@@ -1113,7 +937,7 @@ namespace SanBot.Core
             }
             if (VoiceClient != null)
             {
-                var clientHadData = true;
+                bool clientHadData = true;
 
                 while (clientHadData)
                 {

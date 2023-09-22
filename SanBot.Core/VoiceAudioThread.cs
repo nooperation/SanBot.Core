@@ -58,7 +58,6 @@ namespace SanBot.Core
 
                 if (AudioDataQueue.TryDequeue(out List<byte[]>? rawAudioPackets))
                 {
-                    Console.WriteLine($"VoiceAudioThread: Audio payload found. Sending it... rawAudioPackets={rawAudioPackets.Count}");
                     _isSpeaking = true;
 
                     for (int i = 0; i < rawAudioPackets.Count; i++)
@@ -68,7 +67,6 @@ namespace SanBot.Core
                         if (TryToAvoidInterruptingPeople && (DateTime.Now - LastTimeSomeoneSpoke).TotalSeconds < 1)
                         {
                             // This is not safe in any safe in any sort of manner :D
-                            Console.WriteLine($"We are being interrupted. Pausing speech for now");
                             var newQueue = new ConcurrentQueue<List<byte[]>>();
 
                             // NOTE: We cannot skip back to previously played samples because each sample has the
