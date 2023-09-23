@@ -1,8 +1,4 @@
 ﻿using SanProtocol;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace SanBot.Core
 {
@@ -21,7 +17,7 @@ namespace SanBot.Core
 
         public void AppendBytes(byte[] bytes, int numBytes)
         {
-            if(numBytes > bytes.Length)
+            if (numBytes > bytes.Length)
             {
                 throw new Exception("numBytes > bytes.length");
             }
@@ -37,11 +33,11 @@ namespace SanBot.Core
                 {
                     var totalBytesConsumed = 0;
 
-                    while(br.BaseStream.Length - br.BaseStream.Position >= 4)
+                    while (br.BaseStream.Length - br.BaseStream.Position >= 4)
                     {
                         var packetLength = br.ReadInt32();
                         var remainingBytes = br.BaseStream.Length - br.BaseStream.Position;
-                        if(packetLength > remainingBytes)
+                        if (packetLength > remainingBytes)
                         {
                             break;
                         }
@@ -53,7 +49,7 @@ namespace SanBot.Core
                         //var signature = BitConverter.ToUInt32(packetBytes);
                     }
 
-                    if(totalBytesConsumed > 0)
+                    if (totalBytesConsumed > 0)
                     {
                         newRecvBuffer = new byte[_recvBuffer.Length - totalBytesConsumed];
                         Array.Copy(_recvBuffer, totalBytesConsumed, newRecvBuffer, 0, _recvBuffer.Length - totalBytesConsumed);

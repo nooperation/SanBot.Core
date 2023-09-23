@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Intrinsics.X86;
+﻿using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace SanBot.Core
@@ -10,7 +7,7 @@ namespace SanBot.Core
     {
         public static ushort ShortCRC(byte[] data, long dataLength, ulong initialChecksum)
         {
-            var checksum = ~((uint)initialChecksum);
+            var checksum = ~(uint)initialChecksum;
 
             using (BinaryReader br = new BinaryReader(new MemoryStream(data)))
             {
@@ -18,7 +15,7 @@ namespace SanBot.Core
                 for (ulong i = 0; i < num_8byte_chunks; ++i)
                 {
                     var current = br.ReadUInt64();
-                    checksum = (uint)Sse42.X64.Crc32((ulong)checksum, current);
+                    checksum = (uint)Sse42.X64.Crc32(checksum, current);
                 }
 
                 var remainingBytes = dataLength - br.BaseStream.Position;

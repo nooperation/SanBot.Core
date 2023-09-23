@@ -1,4 +1,5 @@
-﻿using SanProtocol;
+﻿using System.Net.Sockets;
+using SanProtocol;
 using SanProtocol.AgentController;
 using SanProtocol.AnimationComponent;
 using SanProtocol.Audio;
@@ -11,7 +12,6 @@ using SanProtocol.RegionRegion;
 using SanProtocol.Render;
 using SanProtocol.Simulation;
 using SanProtocol.WorldState;
-using System.Net.Sockets;
 
 namespace SanBot.Core
 {
@@ -576,10 +576,10 @@ namespace SanBot.Core
                     return new VoiceNotification(reader);
 
                 default:
-                {
-                    Console.WriteLine("NetworkReader: Unhandled Message " + id);
-                    throw new Exception("NetworkReader: Unhandled Message " + id);
-                }
+                    {
+                        Console.WriteLine("NetworkReader: Unhandled Message " + id);
+                        throw new Exception("NetworkReader: Unhandled Message " + id);
+                    }
             }
         }
 

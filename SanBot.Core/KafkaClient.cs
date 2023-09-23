@@ -1,14 +1,5 @@
-﻿using SanBot.Core.MessageHandlers;
+﻿using System.Net.Sockets;
 using SanProtocol;
-using SanWebApi;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using SanBot.Core;
 
 namespace SanBot.Core
 {
@@ -25,12 +16,12 @@ namespace SanBot.Core
 
         private readonly NetworkWriter _networkWriter;
         private readonly NetworkReader _networkReader;
-        private readonly object _accountConductorLock = new object();
-        private readonly TcpClient _accountConductor = new TcpClient();
+        private readonly object _accountConductorLock = new();
+        private readonly TcpClient _accountConductor = new();
 
         public KafkaClient(Driver driver)
         {
-            this.Driver = driver;
+            Driver = driver;
 
             _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock, nameof(KafkaClient));
             _networkWriter.Start();

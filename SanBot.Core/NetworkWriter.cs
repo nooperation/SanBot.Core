@@ -1,5 +1,5 @@
-﻿using SanProtocol;
-using System.Net.Sockets;
+﻿using System.Net.Sockets;
+using SanProtocol;
 
 namespace SanBot.Core
 {

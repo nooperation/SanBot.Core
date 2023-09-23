@@ -1,12 +1,6 @@
-﻿using Google.Apis.Auth.OAuth2;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
+﻿using System.Net;
 using System.Security;
-using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace SanBot.Core
 {
@@ -29,14 +23,16 @@ namespace SanBot.Core
                 PropertyNameCaseInsensitive = true,
             });
 
-            if(insecureCredentials == null)
+            if (insecureCredentials == null)
             {
                 throw new Exception("Invalid config: " + filePath);
             }
 
-            var credentials = new ConfigFile();
-            credentials.Username = new NetworkCredential("", insecureCredentials.Username).SecurePassword;
-            credentials.Password = new NetworkCredential("", insecureCredentials.Password).SecurePassword;
+            var credentials = new ConfigFile
+            {
+                Username = new NetworkCredential("", insecureCredentials.Username).SecurePassword,
+                Password = new NetworkCredential("", insecureCredentials.Password).SecurePassword
+            };
 
             return credentials;
         }

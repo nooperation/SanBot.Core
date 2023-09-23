@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Concurrent;
 
 namespace SanBot.Core
 {
@@ -56,11 +51,11 @@ namespace SanBot.Core
                     continue;
                 }
 
-                if (AudioDataQueue.TryDequeue(out List<byte[]>? rawAudioPackets))
+                if (AudioDataQueue.TryDequeue(out var rawAudioPackets))
                 {
                     _isSpeaking = true;
 
-                    for (int i = 0; i < rawAudioPackets.Count; i++)
+                    for (var i = 0; i < rawAudioPackets.Count; i++)
                     {
                         Callback(rawAudioPackets[i]);
 

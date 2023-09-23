@@ -1,4 +1,7 @@
-﻿using Concentus.Structs;
+﻿using System.Security;
+using System.Text;
+using System.Text.RegularExpressions;
+using Concentus.Structs;
 using NAudio.Wave;
 using SanBot.Database;
 using SanProtocol;
@@ -8,9 +11,6 @@ using SanProtocol.ClientRegion;
 using SanProtocol.ClientVoice;
 using SanWebApi;
 using SanWebApi.Json;
-using System.Security;
-using System.Text;
-using System.Text.RegularExpressions;
 using static SanBot.Database.Services.PersonaService;
 
 namespace SanBot.Core
@@ -193,7 +193,7 @@ namespace SanBot.Core
 
         private void AgentControllerMessages_OnCharacterControllerInput(CharacterControllerInput e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -207,7 +207,7 @@ namespace SanBot.Core
 
         private void AgentControllerMessages_OnCharacterControllerInputReliable(CharacterControllerInputReliable e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -222,7 +222,7 @@ namespace SanBot.Core
         #region PersonaTracking
         private void WorldStateMessages_OnDestroyCluster(SanProtocol.WorldState.DestroyCluster e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.ClusterId == e.ClusterId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -236,7 +236,7 @@ namespace SanBot.Core
 
         private void WorldStateMessages_OnCreateAgentController(SanProtocol.WorldState.CreateAgentController e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Key == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -254,7 +254,7 @@ namespace SanBot.Core
             if (InitialClusterPositions.ContainsKey(e.ClusterId))
             {
                 Output($"Found my initial cluster position for agent session {e.SessionId}");
-                List<float> initialPosition = InitialClusterPositions[e.ClusterId];
+                var initialPosition = InitialClusterPositions[e.ClusterId];
                 personaData.Position[0] = initialPosition[0];
                 personaData.Position[1] = initialPosition[1];
                 personaData.Position[2] = initialPosition[2];
@@ -263,7 +263,7 @@ namespace SanBot.Core
 
         private void WorldStateMessages_OnDestroyAgentController(SanProtocol.WorldState.DestroyAgentController e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentControllerId == e.AgentControllerId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -284,7 +284,7 @@ namespace SanBot.Core
                 return;
             }
 
-            PersonaData? myPersonaData = PersonasBySessionId
+            var myPersonaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == MySessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -311,7 +311,7 @@ namespace SanBot.Core
 
         private void ClientRegionMessages_OnRemoveUser(SanProtocol.ClientRegion.RemoveUser e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -329,7 +329,7 @@ namespace SanBot.Core
 
         private void ClientRegionMessages_OnAddUser(SanProtocol.ClientRegion.AddUser e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.SessionId == e.SessionId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -369,7 +369,7 @@ namespace SanBot.Core
 
         private void AnimationComponentMessages_OnCharacterTransformPersistent(SanProtocol.AnimationComponent.CharacterTransformPersistent e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentComponentId == e.ComponentId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -385,7 +385,7 @@ namespace SanBot.Core
         }
         private void AnimationComponentMessages_OnCharacterTransform(SanProtocol.AnimationComponent.CharacterTransform e)
         {
-            PersonaData? personaData = PersonasBySessionId
+            var personaData = PersonasBySessionId
                 .Where(n => n.Value.AgentComponentId == e.ComponentId)
                 .Select(n => n.Value)
                 .FirstOrDefault();
@@ -416,8 +416,8 @@ namespace SanBot.Core
 
             const float kFrameFrequency = 1000.0f / 90.0f;
 
-            long millisecondsSinceLastTimestamp = (DateTime.Now.Ticks - LastTimestampTicks) / 10000;
-            float totalFramesSinceLastTimestamp = millisecondsSinceLastTimestamp / kFrameFrequency;
+            var millisecondsSinceLastTimestamp = (DateTime.Now.Ticks - LastTimestampTicks) / 10000;
+            var totalFramesSinceLastTimestamp = millisecondsSinceLastTimestamp / kFrameFrequency;
 
             return LastTimestampFrame + (ulong)totalFramesSinceLastTimestamp;
         }
@@ -559,7 +559,7 @@ namespace SanBot.Core
             }
             else
             {
-                double distanceSinceFromLastVoicePosition =
+                var distanceSinceFromLastVoicePosition =
                     Math.Sqrt(
                         Math.Pow(position[0] - MyPersonaData.LastVoicePosition[0], 2) +
                         Math.Pow(position[1] - MyPersonaData.LastVoicePosition[1], 2) +
@@ -618,7 +618,7 @@ namespace SanBot.Core
         public static string Clusterbutt(string text)
         {
             text = text.Replace("-", "");
-            Match match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
+            var match = Regex.Match(text, @".*([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2})([a-zA-Z0-9]{2}).*", RegexOptions.Singleline);
             if (match.Success)
             {
                 StringBuilder sb = new();
@@ -651,7 +651,7 @@ namespace SanBot.Core
         #region Database 
         public async Task<string?> GetPersonaName(SanUUID personaId)
         {
-            PersonaDto? persona = await ResolvePersonaId(personaId);
+            var persona = await ResolvePersonaId(personaId);
             return persona != null ? $"{persona.Name} ({persona.Handle})" : personaId.Format();
         }
 
@@ -659,18 +659,18 @@ namespace SanBot.Core
         {
             Guid personaGuid = new(personaId.Format());
 
-            PersonaDto? persona = await Database.PersonaService.GetPersona(personaGuid);
+            var persona = await Database.PersonaService.GetPersona(personaGuid);
             if (persona != null)
             {
                 return persona;
             }
 
-            ProfilesResponse profiles = await WebApi.GetProfiles(new List<string>() {
+            var profiles = await WebApi.GetProfiles(new List<string>() {
                 personaId.Format(),
             });
 
             PersonaDto? foundPersona = null;
-            foreach (ProfilesResponse.Datum? item in profiles.Data)
+            foreach (var item in profiles.Data)
             {
                 if (new Guid(item.AvatarId) == personaGuid)
                 {
@@ -725,19 +725,19 @@ namespace SanBot.Core
             await WebApi.Login(username, password);
 
             Output("Getting TOS status...");
-            TosResponse tosStatus = await WebApi.RequestTos();
+            var tosStatus = await WebApi.RequestTos();
             Output($"  Signed TOS = {tosStatus.Payload?.SignedTos}");
             Output($"OK");
 
             Output("Getting user info...");
-            UserInfoResponse userInfoResult = await WebApi.RequestUserInfo();
+            var userInfoResult = await WebApi.RequestUserInfo();
             MyUserInfo = userInfoResult.Payload;
             Output($"  AccountId = {MyUserInfo.AccountId}");
             Output("OK");
 
             Output("Getting personas...");
-            PersonasByAccountResponse personas = await WebApi.RequestPersonaByAccount(MyUserInfo.AccountId);
-            foreach (PersonasByAccountResponse.PayloadClass? item in personas.Payload)
+            var personas = await WebApi.RequestPersonaByAccount(MyUserInfo.AccountId);
+            foreach (var item in personas.Payload)
             {
                 Output($"  {item.Id} | {item.Handle} | {item.Name}");
 
@@ -753,7 +753,7 @@ namespace SanBot.Core
             Output("OK");
 
             Output("Posting to account connector...");
-            AccountConnectorResponse accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
+            var accountConnectorResponse = WebApi.GetAccountConnectorAsync().Result;
             Output("OK");
 
             Output("Driver intialized. Starting KafkaClient");
@@ -769,7 +769,7 @@ namespace SanBot.Core
             RegionAccountConnectorResponse = await WebApi.GetAccountConnectorSceneAsync(personaHandle, sceneHandle);
             CurrentInstanceId = new SanUUID(RegionAccountConnectorResponse.SceneUri[(1 + RegionAccountConnectorResponse.SceneUri.LastIndexOf('/'))..]);
 
-            string regionAddress = CurrentInstanceId.Format();
+            var regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
@@ -823,7 +823,7 @@ namespace SanBot.Core
             };
             PersonasBySessionId[e.SessionId] = MyPersonaData;
 
-            string regionAddress = CurrentInstanceId.Format();
+            var regionAddress = CurrentInstanceId.Format();
             KafkaClient.SendPacket(new SanProtocol.ClientKafka.EnterRegion(
                 regionAddress
             ));
@@ -856,20 +856,20 @@ namespace SanBot.Core
                 throw new Exception($"{nameof(Speak)} - {nameof(MyPersonaData.AgentControllerId)} is null");
             }
 
-            short[] pcmSamples = new short[rawPcmBytes.Length / 2];
+            var pcmSamples = new short[rawPcmBytes.Length / 2];
             Buffer.BlockCopy(rawPcmBytes, 0, pcmSamples, 0, rawPcmBytes.Length);
 
             OpusEncoder encoder = OpusEncoder.Create(kFrequency, 1, Concentus.Enums.OpusApplication.OPUS_APPLICATION_VOIP);
 
-            int totalFrames = pcmSamples.Length / 960;
+            var totalFrames = pcmSamples.Length / 960;
 
             List<byte[]> messages = new();
-            for (int i = 0; i < totalFrames; i++)
+            for (var i = 0; i < totalFrames; i++)
             {
-                byte[] compressedBytes = new byte[1276];
-                int written = encoder.Encode(pcmSamples, kFrameSize * i, kFrameSize, compressedBytes, 0, compressedBytes.Length);
+                var compressedBytes = new byte[1276];
+                var written = encoder.Encode(pcmSamples, kFrameSize * i, kFrameSize, compressedBytes, 0, compressedBytes.Length);
 
-                byte[] packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
+                var packetBytes = new SanProtocol.ClientVoice.LocalAudioData(
                     CurrentInstanceId,
                     MyPersonaData.AgentControllerId.Value,
                     new AudioData(VoiceClient.CurrentSequence, 1000, compressedBytes.Take(written).ToArray()),
@@ -913,11 +913,11 @@ namespace SanBot.Core
 
         public bool Poll()
         {
-            bool handledData = false;
+            var handledData = false;
 
             if (KafkaClient != null)
             {
-                bool clientHadData = true;
+                var clientHadData = true;
 
                 while (clientHadData)
                 {
@@ -927,7 +927,7 @@ namespace SanBot.Core
             }
             if (RegionClient != null)
             {
-                bool clientHadData = true;
+                var clientHadData = true;
 
                 while (clientHadData)
                 {
@@ -937,7 +937,7 @@ namespace SanBot.Core
             }
             if (VoiceClient != null)
             {
-                bool clientHadData = true;
+                var clientHadData = true;
 
                 while (clientHadData)
                 {

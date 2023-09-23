@@ -1,9 +1,5 @@
 ﻿using SanProtocol;
 using SanProtocol.ClientVoice;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
 
 namespace SanBot.Core.MessageHandlers
 {
@@ -18,89 +14,89 @@ namespace SanBot.Core.MessageHandlers
             switch (messageId)
             {
                 case Messages.ClientVoiceMessages.Login:
-                {
-                    newPacket = new Login(reader);
-                    break;
-                }
+                    {
+                        newPacket = new Login(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LoginReply:
-                {
-                    newPacket = new LoginReply(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LoginReply(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.AudioData:
-                {
-                    newPacket = new AudioData(reader);
-                    break;
-                }
+                    {
+                        newPacket = new AudioData(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.SpeechGraphicsData:
-                {
-                    newPacket = new SpeechGraphicsData(reader);
-                    break;
-                }
+                    {
+                        newPacket = new SpeechGraphicsData(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalAudioData:
-                {
-                    newPacket = new LocalAudioData(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalAudioData(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalAudioStreamState:
-                {
-                    newPacket = new LocalAudioStreamState(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalAudioStreamState(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalAudioPosition:
-                {
-                    newPacket = new LocalAudioPosition(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalAudioPosition(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalAudioMute:
-                {
-                    newPacket = new LocalAudioMute(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalAudioMute(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalSetRegionBroadcasted:
-                {
-                    newPacket = new LocalSetRegionBroadcasted(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalSetRegionBroadcasted(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalSetMuteAll:
-                {
-                    newPacket = new LocalSetMuteAll(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalSetMuteAll(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.GroupAudioData:
-                {
-                    newPacket = new GroupAudioData(reader);
-                    break;
-                }
+                    {
+                        newPacket = new GroupAudioData(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.LocalTextData:
-                {
-                    newPacket = new LocalTextData(reader);
-                    break;
-                }
+                    {
+                        newPacket = new LocalTextData(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.MasterInstance:
-                {
-                    newPacket = new MasterInstance(reader);
-                    break;
-                }
+                    {
+                        newPacket = new MasterInstance(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.VoiceModerationCommand:
-                {
-                    newPacket = new VoiceModerationCommand(reader);
-                    break;
-                }
+                    {
+                        newPacket = new VoiceModerationCommand(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.VoiceModerationCommandResponse:
-                {
-                    newPacket = new VoiceModerationCommandResponse(reader);
-                    break;
-                }
+                    {
+                        newPacket = new VoiceModerationCommandResponse(reader);
+                        break;
+                    }
                 case Messages.ClientVoiceMessages.VoiceNotification:
-                {
-                    newPacket = new VoiceNotification(reader);
-                    break;
-                }
+                    {
+                        newPacket = new VoiceNotification(reader);
+                        break;
+                    }
                 default:
-                {
-                    return false;
-                }
+                    {
+                        return false;
+                    }
             }
 
             OnPacket?.Invoke(newPacket);
