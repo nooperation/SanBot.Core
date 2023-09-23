@@ -622,22 +622,22 @@ namespace SanBot.Core
             if (match.Success)
             {
                 StringBuilder sb = new();
-                _ = sb.Append(match.Groups[1 + 7]);
-                _ = sb.Append(match.Groups[1 + 6]);
-                _ = sb.Append(match.Groups[1 + 5]);
-                _ = sb.Append(match.Groups[1 + 4]);
-                _ = sb.Append(match.Groups[1 + 3]);
-                _ = sb.Append(match.Groups[1 + 2]);
-                _ = sb.Append(match.Groups[1 + 1]);
-                _ = sb.Append(match.Groups[1 + 0]);
-                _ = sb.Append(match.Groups[1 + 8 + 7]);
-                _ = sb.Append(match.Groups[1 + 8 + 6]);
-                _ = sb.Append(match.Groups[1 + 8 + 5]);
-                _ = sb.Append(match.Groups[1 + 8 + 4]);
-                _ = sb.Append(match.Groups[1 + 8 + 3]);
-                _ = sb.Append(match.Groups[1 + 8 + 2]);
-                _ = sb.Append(match.Groups[1 + 8 + 1]);
-                _ = sb.Append(match.Groups[1 + 8 + 0]);
+                sb.Append(match.Groups[1 + 7]);
+                sb.Append(match.Groups[1 + 6]);
+                sb.Append(match.Groups[1 + 5]);
+                sb.Append(match.Groups[1 + 4]);
+                sb.Append(match.Groups[1 + 3]);
+                sb.Append(match.Groups[1 + 2]);
+                sb.Append(match.Groups[1 + 1]);
+                sb.Append(match.Groups[1 + 0]);
+                sb.Append(match.Groups[1 + 8 + 7]);
+                sb.Append(match.Groups[1 + 8 + 6]);
+                sb.Append(match.Groups[1 + 8 + 5]);
+                sb.Append(match.Groups[1 + 8 + 4]);
+                sb.Append(match.Groups[1 + 8 + 3]);
+                sb.Append(match.Groups[1 + 8 + 2]);
+                sb.Append(match.Groups[1 + 8 + 1]);
+                sb.Append(match.Groups[1 + 8 + 0]);
 
                 return sb.ToString();
             }
@@ -657,7 +657,7 @@ namespace SanBot.Core
 
         public async Task<PersonaDto?> ResolvePersonaId(SanUUID personaId)
         {
-            Guid personaGuid = new(personaId.Format());
+            var personaGuid = new Guid(personaId.Format());
 
             var persona = await Database.PersonaService.GetPersona(personaGuid);
             if (persona != null)
