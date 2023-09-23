@@ -6,14 +6,14 @@ namespace SanBot.Core
 {
     public class ConfigFile
     {
-        private class ConfigFileInsecure
+        public class ConfigFileInsecure
         {
             public string Username { get; set; } = default!;
             public string Password { get; set; } = default!;
         }
 
-        public SecureString Username { get; private set; } = default!;
-        public SecureString Password { get; private set; } = default!;
+        public SecureString Username { get; set; } = default!;
+        public SecureString Password { get; set; } = default!;
 
         public static ConfigFile FromJsonFile(string filePath)
         {

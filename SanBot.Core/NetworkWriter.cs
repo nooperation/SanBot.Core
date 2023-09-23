@@ -28,7 +28,7 @@ namespace SanBot.Core
 
         public void Start()
         {
-            Console.WriteLine("NetworkWriter::Start()");
+            Console.WriteLine($"NetworkWriter::Start({_name})");
 
             if (_isRunning)
             {
@@ -56,7 +56,7 @@ namespace SanBot.Core
 
         public void Stop()
         {
-            Console.WriteLine("NetworkWriter::Stop()");
+            Console.WriteLine($"NetworkWriter::Stop({_name})");
 
             if (!_isRunning)
             {

@@ -39,7 +39,7 @@ namespace SanBot.Core
 
         public void Start()
         {
-            Console.WriteLine("NetworkReader::Start()");
+            Console.WriteLine($"NetworkReader::Start({_name})");
 
             if (_isRunning)
             {
@@ -61,7 +61,7 @@ namespace SanBot.Core
         }
         public void Stop()
         {
-            Console.WriteLine("NetworkReader::Stop()");
+            Console.WriteLine($"NetworkReader::Stop({_name})");
 
             if (!_isRunning)
             {
