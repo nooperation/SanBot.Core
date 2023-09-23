@@ -1,32 +1,29 @@
 ﻿using SanProtocol;
-using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using static SanWebApi.Json.MarketplaceApi_ProductsResponse;
 
 namespace SanBot.Core
 {
     internal class NetworkWriter
     {
-        private volatile List<IPacket> _packetQueueFromOtherThread = new List<IPacket>();
+        private volatile List<IPacket> _packetQueueFromOtherThread = new();
 
-        private object _accountConductorLock;
-        private TcpClient _accountConductor;
+        private readonly object _accountConductorLock;
+        private readonly TcpClient _accountConductor;
 
-        private object _conditionVariable = new object();
+        private readonly string _name = "";
+
+        private readonly object _conditionVariable = new();
         private bool _dataIsAvailable = false;
         private volatile bool _isRunning = false;
 
         private Thread? _writerThread;
 
-        public NetworkWriter(TcpClient accountConductor, object accountConductorLock)
+        public NetworkWriter(TcpClient accountConductor, object accountConductorLock, string name = "")
         {
             _accountConductor = accountConductor;
             _accountConductorLock = accountConductorLock;
+
+            _name = name;
         }
 
         public void Start()
@@ -49,7 +46,7 @@ namespace SanBot.Core
                     {
                         if (!_dataIsAvailable)
                         {
-                            Monitor.Wait(_conditionVariable);
+                            var unused = Monitor.Wait(_conditionVariable);
                         }
                     }
                 }
@@ -72,10 +69,7 @@ namespace SanBot.Core
                 Monitor.Pulse(_conditionVariable);
             }
 
-            if(_writerThread != null)
-            {
-                _writerThread.Join();
-            }
+            _writerThread?.Join();
         }
 
         public void EnqueuePacket(IPacket packet)
@@ -104,7 +98,7 @@ namespace SanBot.Core
             {
                 _packetQueueFromOtherThread.Add(packet);
 
-                if(!_dataIsAvailable)
+                if (!_dataIsAvailable)
                 {
                     _dataIsAvailable = true;
                     Monitor.Pulse(_conditionVariable);
@@ -115,7 +109,7 @@ namespace SanBot.Core
         private byte[] _pollBytes = new byte[65535];
         public void Poll()
         {
-            List<IPacket> packetsToSend = new List<IPacket>();
+            var packetsToSend = new List<IPacket>();
 
             lock (_conditionVariable)
             {
@@ -138,8 +132,8 @@ namespace SanBot.Core
 
                     if (_pollBytes.Length < pollBytesOffset + packetBytes.Length)
                     {
-                        Console.WriteLine($"*** Expanding _pollBytes by {65535 + packetBytes.Length * 2} ***");
-                        var newPollbytes = new byte[_pollBytes.Length + 65535 + packetBytes.Length * 2];
+                        Console.WriteLine($"*** Expanding _pollBytes by {65535 + (packetBytes.Length * 2)} ***");
+                        var newPollbytes = new byte[_pollBytes.Length + 65535 + (packetBytes.Length * 2)];
                         Array.Copy(_pollBytes, newPollbytes, _pollBytes.Length);
                         _pollBytes = newPollbytes;
                     }
@@ -161,6 +155,14 @@ namespace SanBot.Core
             lock (_accountConductorLock)
             {
                 var outStream = _accountConductor.GetStream();
+
+                // this is a bit of a hack for the voice server and needs to be fixed later
+                if (_name == nameof(VoiceClient))
+                {
+                    var header = BitConverter.GetBytes(toSend.Length);
+                    outStream.Write(header, 0, header.Length);
+                }
+
                 var bytesRemaining = toSendLength;
                 var bytesOffset = 0;
                 while (bytesRemaining > 0)

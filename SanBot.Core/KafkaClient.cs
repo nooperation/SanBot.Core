@@ -32,10 +32,10 @@ namespace SanBot.Core
         {
             this.Driver = driver;
 
-            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock);
+            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock, nameof(KafkaClient));
             _networkWriter.Start();
 
-            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock);
+            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock, nameof(KafkaClient));
             _networkReader.Start();
         }
 

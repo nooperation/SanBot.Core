@@ -21,16 +21,20 @@ namespace SanBot.Core
         private readonly TcpClient _accountConductor;
         private readonly PacketBuffer _packetBuffer = new();
 
+        private readonly string _name = "";
+
         private Thread? _readerThread;
         private volatile bool _isRunning = false;
 
-        public NetworkReader(TcpClient accountConductor, object accountConductorLock)
+        public NetworkReader(TcpClient accountConductor, object accountConductorLock, string name = "")
         {
             _packetBuffer.OnProcessPackets = ProcessPackets;
             _packetBuffer.DecodePacket = DecodePacket;
 
             _accountConductor = accountConductor;
             _accountConductorLock = accountConductorLock;
+
+            _name = name;
         }
 
         public void Start()
@@ -72,7 +76,7 @@ namespace SanBot.Core
         private IPacket DecodePacket(byte[] packet)
         {
             using BinaryReader reader = new(new MemoryStream(packet));
-            uint id = reader.ReadUInt32();
+            var id = reader.ReadUInt32();
 
             switch (id)
             {
@@ -592,8 +596,8 @@ namespace SanBot.Core
             {
                 while (_accountConductor.Available > 0)
                 {
-                    NetworkStream instream = _accountConductor.GetStream();
-                    int numBytesRead = instream.Read(_pollBuffer, 0, _pollBuffer.Length);
+                    var instream = _accountConductor.GetStream();
+                    var numBytesRead = instream.Read(_pollBuffer, 0, _pollBuffer.Length);
                     _packetBuffer.AppendBytes(_pollBuffer, numBytesRead);
                 }
             }
@@ -627,7 +631,7 @@ namespace SanBot.Core
                     return null;
                 }
 
-                List<IPacket> newPackets = _availablePackets;
+                var newPackets = _availablePackets;
                 _availablePackets = new List<IPacket>();
 
                 return newPackets;

@@ -779,7 +779,7 @@ namespace SanBot.Core
                 Output("Starting region client");
                 RegionClient.Start(
                     RegionAccountConnectorResponse.RegionResponse.Host,
-                    RegionAccountConnectorResponse.RegionResponse.UdpPort,
+                    RegionAccountConnectorResponse.RegionResponse.TcpPort,
                     RegionAccountConnectorResponse.RegionResponse.Secret
                 );
             }
@@ -787,7 +787,7 @@ namespace SanBot.Core
             Output("Starting voice client");
             VoiceClient.Start(
                 RegionAccountConnectorResponse.VoiceResponse.Host,
-                RegionAccountConnectorResponse.VoiceResponse.UdpPort,
+                RegionAccountConnectorResponse.VoiceResponse.TcpPort,
                 RegionAccountConnectorResponse.VoiceResponse.Secret,
                 CurrentInstanceId
             );
@@ -830,7 +830,7 @@ namespace SanBot.Core
 
             RegionClient.SendPacket(new SanProtocol.ClientRegion.ClientDynamicReady(
                 new List<float>() { 0, 0, 0 },
-                new List<float>() { 1, 0, 0, 0 },
+                new List<float>() { 0, 0, 0, 0 },
                 new SanUUID(MyPersonaDetails!.Id),
                 "",
                 0,

@@ -1,14 +1,5 @@
-﻿using SanBot.Core.MessageHandlers;
-using SanProtocol;
-using SanWebApi;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using SanProtocol;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
-using SanBot.Core;
 
 namespace SanBot.Core
 {
@@ -27,19 +18,20 @@ namespace SanBot.Core
 
         private readonly NetworkWriter _networkWriter;
         private readonly NetworkReader _networkReader;
-        private readonly object _accountConductorLock = new object();
-        private readonly TcpClient _accountConductor = new TcpClient();
+
+        private readonly object _accountConductorLock = new();
+        private readonly TcpClient _accountConductor = new();
 
         public uint CurrentSequence { get; set; }
 
         public VoiceClient(Driver driver)
         {
-            this.Driver = driver;
+            Driver = driver;
 
-            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock);
+            _networkWriter = new NetworkWriter(_accountConductor, _accountConductorLock, nameof(VoiceClient));
             _networkWriter.Start();
 
-            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock);
+            _networkReader = new NetworkReader(_accountConductor, _accountConductorLock, nameof(VoiceClient));
             _networkReader.Start();
         }
 
