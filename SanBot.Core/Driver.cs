@@ -842,6 +842,44 @@ namespace SanBot.Core
             ));
         }
 
+        public static byte[] OpusToRaw(List<byte[]> opusSamplesIn, int sampleRateOut = 16000, int bitsOut = 16, int channelsOut = 1)
+        {
+            const int kFrameSize = 960;
+            const int kFrequency = 48000;
+
+            using (var ms = new MemoryStream())
+            {
+                var decoder = OpusDecoder.Create(kFrequency, 1);
+                var decompressedBuffer = new short[kFrameSize * 2];
+
+                foreach (var item in opusSamplesIn)
+                {
+                    var numSamples = OpusPacketInfo.GetNumSamples(decoder, item, 0, item.Length);
+                    var result = decoder.Decode(item, 0, item.Length, decompressedBuffer, 0, numSamples);
+
+                    var decompressedBufferBytes = new byte[result * 2];
+                    Buffer.BlockCopy(decompressedBuffer, 0, decompressedBufferBytes, 0, result * 2);
+
+                    ms.Write(decompressedBufferBytes);
+                }
+
+                ms.Seek(0, SeekOrigin.Begin);
+
+                using (var rs = new RawSourceWaveStream(ms, new WaveFormat(kFrequency, 16, 1)))
+                {
+                    using (var wavStream = new MemoryStream())
+                    {
+                        var outFormat = new WaveFormat(sampleRateOut, bitsOut, channelsOut);
+                        using (var resampler = new MediaFoundationResampler(rs, outFormat))
+                        {
+                            WaveFileWriter.WriteWavFileToStream(wavStream, resampler);
+                            return wavStream.ToArray();
+                        }
+                    }
+                }
+            }
+        }
+
         public void Speak(byte[] rawPcmBytes)
         {
             const int kFrameSize = 960;
